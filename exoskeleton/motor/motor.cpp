@@ -33,12 +33,12 @@ namespace exoskeleton::motor {
 
     struct SingleMotorData {
         bool enabled;
-        int slot_idx;
-        int cmd_cntr;
+        int32_t slot_idx;
+        int32_t cmd_cntr;
         int32_t position;
-        int8_t torque;
+        int32_t torque;
 
-        SingleMotorData(bool en, int slot, int cmd, int32_t pos, int8_t tq)
+        SingleMotorData(bool en, int32_t slot, int32_t cmd, int32_t pos, int32_t tq)
             : enabled(en), slot_idx(slot), cmd_cntr(cmd), position(pos), torque(tq) {}
 
         SingleMotorDataTuple to_tuple() const {
@@ -46,13 +46,16 @@ namespace exoskeleton::motor {
         }
 
 
-        std::string to_string(){
-            std::stringstream ss;
-            ss << enabled,'-',slot_idx,cmd_cntr,position,torque;
-            return ss.str();
-        }
+
+
+        friend std::ostream& operator<<(std::ostream &os, const SingleMotorData& data);
 
     };
+
+    std::ostream& operator<<(std::ostream& os, const SingleMotorData& data){
+        os << "enable: " << data.enabled << " slot_idx: " << data.slot_idx << " cmd_cntr: " << data.cmd_cntr << " pos: " << data.position << " torq: " << data.torque;
+        return os;
+    }
 
     std::string find_cstny_usb_com_port() {
         for (const QSerialPortInfo &port : QSerialPortInfo::availablePorts()) {
@@ -86,14 +89,14 @@ namespace exoskeleton::motor {
         return std::accumulate(data.begin(), data.end() - 1, 0) & 0xFF;
     }
 
-    SingleMotorData read_data(QSerialPort& serial, int max_tries = 10) {
-        serial.waitForReadyRead(100);
+    SingleMotorData read_data(QSerialPort* serial, int max_tries = 10) {
+        serial->waitForReadyRead(100);
         QByteArray buffer;
 
         int tries = 0;
         while (tries < max_tries) {
-            if (serial.waitForReadyRead(100)) {
-                buffer += serial.readAll();
+            if (serial->waitForReadyRead(100)) {
+                buffer += serial->readAll();
 
                 while (buffer.size() >= 8) { // HEADER(1) + DATA(7)
                     int headerIndex = buffer.indexOf(HEADER);
@@ -108,10 +111,10 @@ namespace exoskeleton::motor {
                     QByteArray data = buffer.mid(headerIndex + 1, 7);
                     buffer.remove(0, headerIndex + 8); // feldolgozott adatok törlése
 
-                    uint8_t calculated_checksum = calculateChecksum(data);
-                    uint8_t received_checksum = static_cast<uint8_t>(data.at(data.size() - 1));
+                    int32_t calculated_checksum = calculateChecksum(data);
+                    int32_t received_checksum = static_cast<int32_t>(data.at(data.size() - 1));
 
-                    if (calculated_checksum == received_checksum) {
+                    if (calculated_checksum == received_checksum) { //calculated_checksum == received_checksum
                         uint8_t first = static_cast<uint8_t>(data.at(0));
                         bool enabled = (first >> 7) & 0b1;
                         int slot_idx = (first >> 4) & 0b111;
@@ -195,10 +198,10 @@ namespace exoskeleton::motor {
         send(ser, CMD_SET_FUNC_AT_SLOT, data);
     }
 
-    void reader_daemon(QSerialPort &ser) {
+    void reader_daemon(QSerialPort *ser) {
         while (true) {
             auto data = read_data(ser);
-            std::cout << data.to_string() << std::endl;
+            std::cout << data<< std::endl;
         }
     }
 }
