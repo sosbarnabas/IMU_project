@@ -69,7 +69,6 @@ namespace exoskeleton::motor {
         }
 
         QSerialPort* ser = new QSerialPort(QString::fromStdString(usb_com_port));
-        ser->setBaudRate(baudrate);
 
         if (!ser->open(QIODevice::ReadWrite)) {
             throw std::runtime_error("Failed to open serial port");
@@ -113,14 +112,13 @@ namespace exoskeleton::motor {
                         break; // még nem érkezett meg a teljes csomag
                     }
 
-                    QByteArray data_with_header = buffer.mid(headerIndex, 8);  // HEADER + 7 byte adat
-
+                    QByteArray data = buffer.mid(headerIndex + 1, 7);
                     buffer.remove(0, headerIndex + 8); // feldolgozott adatok törlése
 
-                    if (calculateChecksum(data_with_header) == static_cast<uint8_t>(data_with_header.at(7))) {
-                        QByteArray data = data_with_header.mid(1, 6); // Csak adat checksum nélkül
+                    int32_t calculated_checksum = calculateChecksum(data);
+                    int32_t received_checksum = static_cast<int32_t>(data.at(data.size() - 1));
 
-                    if (true) { //calculated_checksum == received_checksum
+                    if (true) { // TODO
                         int32_t first = static_cast<int32_t>(data.at(0));
                         bool enabled = (first >> 7) & 0b1;
                         int slot_idx = (first >> 4) & 0b111;
@@ -133,9 +131,8 @@ namespace exoskeleton::motor {
 
                         return SingleMotorData(enabled, slot_idx, cmd_cntr, position, torque);
                     } else {
-                        qWarning() << "Checksum hiba, adatok dobása...";
+                        std::cerr << "Checksum hiba, adatok dobása..." << std::endl;
                     }
-
                 }
             }
             tries++;
