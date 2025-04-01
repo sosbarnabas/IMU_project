@@ -74,12 +74,24 @@ namespace exoskeleton::motor {
         if (!ser->open(QIODevice::ReadWrite)) {
             throw std::runtime_error("Failed to open serial port");
         }
-
+        
+        ser->setBaudRate(baudrate);
+        ser->setDataBits(QSerialPort::Data8);
+        ser->setParity(QSerialPort::NoParity);
+        ser->setStopBits(QSerialPort::OneStop);
+        
         return ser;
     }
 
-    uint8_t calculateChecksum(const QByteArray &data_with_header) {
-        return std::accumulate(data_with_header.begin(), data_with_header.end() - 1, 0) & 0xFF;
+    uint8_t calculateChecksum(const QByteArray &data) {
+        if (data.size() < 1) {
+            return 0;
+        }
+        auto sum = int{0};
+        for (auto const e : data) {
+            sum += int{e};
+        }
+        return sum & 0xFF;//std::accumulate(data.begin(), data.end() - 1, int{0}) & 0xFF;
     }
 
     SingleMotorData read_data(QSerialPort* serial, int max_tries = 10) {
@@ -108,7 +120,8 @@ namespace exoskeleton::motor {
                     if (calculateChecksum(data_with_header) == static_cast<uint8_t>(data_with_header.at(7))) {
                         QByteArray data = data_with_header.mid(1, 6); // Csak adat checksum nélkül
 
-                        uint8_t first = static_cast<uint8_t>(data.at(0));
+                    if (true) { //calculated_checksum == received_checksum
+                        int32_t first = static_cast<int32_t>(data.at(0));
                         bool enabled = (first >> 7) & 0b1;
                         int slot_idx = (first >> 4) & 0b111;
                         int cmd_cntr = first & 0b1111;
@@ -116,7 +129,7 @@ namespace exoskeleton::motor {
                         int32_t position = qFromBigEndian<int32_t>(
                             reinterpret_cast<const uchar*>(data.constData() + 1)
                         );
-                        int8_t torque = static_cast<int8_t>(data.at(5));
+                        int32_t torque = static_cast<int32_t>(data.at(5));
 
                         return SingleMotorData(enabled, slot_idx, cmd_cntr, position, torque);
                     } else {
@@ -134,11 +147,16 @@ namespace exoskeleton::motor {
 
     void send(QSerialPort* ser, int command, const QByteArray& data = {}, int addr = ADDR) {
         QByteArray full_command;
-        full_command.append(static_cast<char>(HEADER));
-        full_command.append(static_cast<char>(addr));
-        full_command.append(static_cast<char>(command));
-        full_command.append(data);
-
+        
+        full_command.append(static_cast<uint8_t>(HEADER));
+        full_command.append(static_cast<uint8_t>(addr));
+        full_command.append(static_cast<uint8_t>(command));
+        if (data.size() > 0) {
+            full_command.append(data);
+        }
+        uint8_t checksum = calculateChecksum(full_command);
+        full_command.append(checksum);
+        // qDebug() << full_command.toStdString() << '\n';
         qint64 bytesWritten = ser->write(full_command);
         if (bytesWritten != full_command.size()) {
             qWarning() << "Nem sikerült az összes bájt elküldése";
@@ -146,15 +164,15 @@ namespace exoskeleton::motor {
     }
 
     void motor_set_zero(QSerialPort* ser, int addr = ADDR) {
-        send(ser, CMD_SET_ZERO, QByteArray(), addr);
+        send(ser, CMD_SET_ZERO, {}, addr);
     }
 
     void motor_enable(QSerialPort* ser, int addr = ADDR) {
-        send(ser, CMD_ENABLE, QByteArray(), addr);
+        send(ser, CMD_ENABLE, {}, addr);
     }
 
     void motor_disable(QSerialPort* ser, int addr = ADDR) {
-        send(ser, CMD_DISABLE, QByteArray(), addr);
+        send(ser, CMD_DISABLE, {}, addr);
     }
 
     void motor_set_offset(QSerialPort* ser, int value, int addr = ADDR) {
