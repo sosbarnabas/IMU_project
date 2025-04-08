@@ -113,12 +113,12 @@ namespace exoskeleton::motor {
                     }
 
                     QByteArray data = buffer.mid(headerIndex + 1, 7);
+                    auto checksumData = buffer.mid(headerIndex, 7);
                     buffer.remove(0, headerIndex + 8); // feldolgozott adatok törlése
 
-                    int32_t calculated_checksum = calculateChecksum(data);
-                    int32_t received_checksum = static_cast<int32_t>(data.at(data.size() - 1));
-
-                    if (true) { // TODO
+                    auto calculated_checksum = uint8_t{calculateChecksum(checksumData)};
+                    auto received_checksum = uint8_t{data.at (data.size()-1)};
+                    if (calculated_checksum == received_checksum) {
                         int32_t first = static_cast<int32_t>(data.at(0));
                         bool enabled = (first >> 7) & 0b1;
                         int slot_idx = (first >> 4) & 0b111;
