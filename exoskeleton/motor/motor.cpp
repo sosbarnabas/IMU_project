@@ -82,7 +82,7 @@ namespace exoskeleton::motor {
         return ser;
     }
 
-    uint8_t calculateChecksum(const QByteArray &data) {
+    int8_t calculateChecksum(const QByteArray &data) {
         if (data.size() < 1) {
             return 0;
         }
@@ -116,8 +116,8 @@ namespace exoskeleton::motor {
                     auto checksumData = buffer.mid(headerIndex, 7);
                     buffer.remove(0, headerIndex + 8); // feldolgozott adatok törlése
 
-                    auto calculated_checksum = uint8_t{calculateChecksum(checksumData)};
-                    auto received_checksum = uint8_t{data.at (data.size()-1)};
+                    auto calculated_checksum =calculateChecksum(checksumData);
+                    auto received_checksum = data.at (data.size()-1);
                     if (calculated_checksum == received_checksum) {
                         int32_t first = static_cast<int32_t>(data.at(0));
                         bool enabled = (first >> 7) & 0b1;
