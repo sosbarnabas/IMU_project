@@ -1,0 +1,57 @@
+{
+  "name" : "exo-cpp-orbsa",
+  "version-string" : "1.0.0",
+  "builtin-baseline" : "d8ad13c401b30c2836d00b8923c9127f05f591c7",
+  "dependencies" : [ {
+    "name" : "brotli",
+    "version>=" : "1.1.0#1"
+  }, {
+    "name" : "bzip2",
+    "version>=" : "1.0.8#6"
+  }, {
+    "name" : "dbus",
+    "version>=" : "1.16.2#1"
+  }, {
+    "name" : "double-conversion",
+    "version>=" : "3.3.0#1"
+  }, {
+    "name" : "egl-registry",
+    "version>=" : "2024-01-25"
+  }, {
+    "name" : "expat",
+    "version>=" : "2.7.1"
+  }, {
+    "name" : "freetype",
+    "version>=" : "2.13.3"
+  }, {
+    "name" : "harfbuzz",
+    "version>=" : "10.2.0#3"
+  }, {
+    "name" : "hiredis",
+    "version>=" : "1.3.0"
+  }, {
+    "name" : "libpng",
+    "version>=" : "1.6.46"
+  }, {
+    "name" : "vcpkg-cmake-config",
+    "version>=" : "2024-05-23"
+  }, {
+    "name" : "vcpkg-cmake-get-vars",
+    "version>=" : "2024-09-22"
+  }, {
+    "name" : "vcpkg-cmake",
+    "version>=" : "2024-04-23"
+  }, {
+    "name" : "vcpkg-make",
+    "version>=" : "2025-04-25"
+  }, {
+    "name" : "vcpkg-tool-meson",
+    "version>=" : "1.7.2"
+  }, {
+    "name" : "zlib",
+    "version>=" : "1.3.1"
+  }, {
+    "name" : "redis-plus-plus",
+    "version>=" : "1.3.14"
+  } ]
+}

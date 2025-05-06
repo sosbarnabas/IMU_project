@@ -7,7 +7,7 @@ void RedisSingleMotorController::loop() {
     while (true) {
         auto command = redis_.rpop("command:" + std::to_string(address_));
         if (command) {
-            processCommand(*command);
+            processCommand(command);
         } else {
             measureAndStore();
         }
