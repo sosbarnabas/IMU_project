@@ -4,31 +4,26 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include "../motor/motor.h"
 
 namespace exoskeleton::redis_tools {
+    std::unordered_map<std::string, std::string>
+    hgetall_map(sw::redis::Redis &redis, const std::string &key);
 
-/// Retrieve all fields of a hash into a map
-std::unordered_map<std::string, std::string>
-hgetall_map(sw::redis::Redis &redis, const std::string &key);
+    std::optional<std::string>
+    get_opt(sw::redis::Redis &redis, const std::string &key);
 
-/// GET key → optional<string> (nullopt if not found)
-std::optional<std::string>
-get_opt(sw::redis::Redis &redis, const std::string &key);
+    bool get_flag(sw::redis::Redis &redis,
+                  const std::string &key,
+                  bool clear = false);
 
-/**
- * GETSET key 0 → returns old flag value as bool
- * If clear=true, resets flag to 0 after reading; otherwise leaves it.
- */
-bool get_flag(sw::redis::Redis &redis,
-              const std::string &key,
-              bool clear = false);
+    sw::redis::Subscriber make_keyspace_subscriber(
+        sw::redis::Redis &redis,
+        const std::string &key);
 
-/**
- * Create a Subscriber for keyspace notifications on given key.
- * Internally runs CONFIG SET notify-keyspace-events KEA.
- */
-sw::redis::Subscriber make_keyspace_subscriber(
-    sw::redis::Redis &redis,
-    const std::string &key);
+    void xadd_motor_data(sw::redis::Redis &redis, int address, const exoskeleton::motor::SingleMotorData &data);
 
-} // namespace redis_tools
+    void send_ok(sw::redis::Redis &redis, const std::string &key, const std::string &record);
+    void send_error(sw::redis::Redis &redis, const std::string &key, const std::string &error);
+
+}

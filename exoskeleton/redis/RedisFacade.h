@@ -29,7 +29,18 @@ public:
     // GET currentuserid
     std::optional<int> current_user_id();
 
-private:
+    //void flush_all();
+
+    void set_value(const std::string& key, const std::string& value);
+
+    //void hmset_env(const std::unordered_map<std::string, std::string>& data);
+
+   // void hmset_user(const std::unordered_map<std::string, std::string>& data);
+
+    void flag_user_params_changed();
+
+    void flag_db_params_changed();
+//private:
     sw::redis::Redis _redis;
 };
 

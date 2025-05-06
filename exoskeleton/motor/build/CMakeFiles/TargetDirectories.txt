@@ -1,3 +1,0 @@
-/home/samu/exoskeleton-core-cpp/exoskeleton/motor/build/CMakeFiles/MOTOR.dir
-/home/samu/exoskeleton-core-cpp/exoskeleton/motor/build/CMakeFiles/edit_cache.dir
-/home/samu/exoskeleton-core-cpp/exoskeleton/motor/build/CMakeFiles/rebuild_cache.dir

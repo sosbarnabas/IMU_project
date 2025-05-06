@@ -1,5 +1,6 @@
 #include "RedisFacade.h"
 #include <stdexcept>
+#include <optional>
 
 namespace exoskeleton::redis {
 
@@ -39,5 +40,18 @@ std::optional<int> Facade::current_user_id() {
         return std::nullopt;
     }
 }
+
+void Facade::set_value(const std::string& key, const std::string& value) {
+    _redis.set(key, value);
+}
+
+void Facade::flag_user_params_changed() {
+    _redis.set("conf:user:set", "1");
+}
+
+void Facade::flag_db_params_changed() {
+    _redis.set("dbchanged", "1");
+}
+
 
 } // namespace redis
