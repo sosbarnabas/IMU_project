@@ -1,5 +1,8 @@
+#pragma once
+
 #include <sw/redis++/redis++.h>
 #include "../motor/MultiPortExoMotors.h"
+#include "RedisTools.h"
 #include "RedisTools.h"
 
 class RedisSingleMotorController {
