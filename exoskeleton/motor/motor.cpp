@@ -32,6 +32,7 @@ namespace exoskeleton::motor {
     using SingleMotorDataTuple = std::tuple<bool, int, int, int32_t, int8_t>;
 
     struct SingleMotorData {
+        SingleMotorData() = default;
         bool enabled;
         int32_t slot_idx;
         int32_t cmd_cntr;
