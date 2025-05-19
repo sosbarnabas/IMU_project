@@ -41,7 +41,7 @@ public:
 
 private:
     std::vector<std::string> ports_;
-    std::vector<std::shared_ptr<QSerialPort>> serials_;
+    std::vector<QSerialPort*> serials_;
     std::vector<SingleMotorData> prev_read_;
     std::vector<SingleMotorData> latest_full_read_;
     int64_t timeout_ns_;

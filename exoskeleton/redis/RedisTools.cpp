@@ -80,4 +80,21 @@ namespace exoskeleton::redis_tools {
     void send_error(sw::redis::Redis &redis, const std::string &key, const std::string &error) {
         redis.lpush(key, "ER:" + error);
     }
+    std::optional<int> signal_data_ready(sw::redis::Redis &redis, int n_motors) {
+        auto new_cnt = redis.incr("sync:data:cnt");
+        if (new_cnt == n_motors) {
+            auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+            auto t = sw::redis::StringView{std::to_string(time)};
+            auto p = redis.pipeline();
+            p.set("sync:data:cnt","0");
+            p.set("sync:data:cnt",t);
+            p.exec();
+            return time;
+        }
+        else {
+            return std::nullopt;
+        }
+
+    }
 }
+

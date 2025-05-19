@@ -22,7 +22,7 @@ namespace exoskeleton::redis_tools {
         const std::string &key);
 
     void xadd_motor_data(sw::redis::Redis &redis, int address, const exoskeleton::motor::SingleMotorData &data);
-
+    std::optional<int> signal_data_ready(sw::redis::Redis &redis, int n_motors);
     void send_ok(sw::redis::Redis &redis, const std::string &key, const std::string &record);
     void send_error(sw::redis::Redis &redis, const std::string &key, const std::string &error);
 

@@ -50,7 +50,7 @@ namespace exoskeleton::motor {
     };
 
     std::ostream& operator<<(std::ostream& os, const SingleMotorData& data){
-        os << "enable: " << data.enabled << " slot_idx: " << data.slot_idx << " cmd_cntr: " << data.cmd_cntr << " pos: " << data.position << " torq: " << data.torque;
+        os << "enabled: " << data.enabled << " slot_idx: " << data.slot_idx << " cmd_cntr: " << data.cmd_cntr << " pos: " << data.position << " torq: " << data.torque;
         return os;
     }
 
@@ -68,7 +68,7 @@ namespace exoskeleton::motor {
         if (usb_com_port.empty()) {
             throw std::runtime_error("Cannot find COM port");
         }
-
+        std::cout << usb_com_port << std::endl;
         QSerialPort* ser = new QSerialPort(QString::fromStdString(usb_com_port));
 
         if (!ser->open(QIODevice::ReadWrite)) {

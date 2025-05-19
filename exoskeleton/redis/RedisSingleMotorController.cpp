@@ -18,7 +18,7 @@ static const std::string EXIT_KEY = "exit";
 void RedisSingleMotorController::loop() {
     redis_.brpop("started:" + std::to_string(address_), 0);
     std::cout << "[DEBUG] Start jelzés megérkezett!" << std::endl;
-
+    motor_.connect();
     auto subscriber = exoskeleton::redis_tools::make_keyspace_subscriber(redis_,"sync:loop:next");
     subscriber.subscribe("sync:loop:next");
 
@@ -31,7 +31,8 @@ void RedisSingleMotorController::loop() {
             std::cout << "[DEBUG] Parancs: " << *raw_command << std::endl;
             processCommand(*raw_command);
         } else {
-            std::cout << "[DEBUG] Nincs parancs" << std::endl;
+            measureAndStore();
+            //std::cout << "[DEBUG] Nincs parancs " << data.size() << std::endl;
         }
     });
 
@@ -59,7 +60,7 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
     try {
         if (c == "enable") {
             std::cerr << "[DEBUG] Enabl motor " << idx << std::endl;
-            //motor_.enable(idx);
+            motor_.raw_enable(idx);
             std::cerr << "[DEBUG] Enabled motor " << idx << std::endl;
             exoskeleton::redis_tools::send_ok(
                 redis_,
@@ -78,10 +79,7 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
             );
         }
         else if (c == "read") {
-            auto data = motor_.read();
-            if (!data.empty()) {
-                exoskeleton::redis_tools::xadd_motor_data(redis_, address_, data[0]);
-            }
+            measureAndStore();
         }
         else {
             std::cerr << "Unknown command: " << c << std::endl;
@@ -100,6 +98,7 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
 
 void RedisSingleMotorController::measureAndStore() {
     auto data = motor_.read();
+    std::cout << data[0] << std::endl;
     if (!data.empty()) {
         exoskeleton::redis_tools::xadd_motor_data(redis_, address_, data[0]);
     }

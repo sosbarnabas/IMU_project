@@ -69,16 +69,16 @@ struct SingleMotorData {
 };
 
 std::string find_cstny_usb_com_port();
-QSerialPort* open_serial(int baudrate);
+QSerialPort* open_serial(int baudrate = 1000000);
 
 int8_t calculateChecksum(const QByteArray &data);
-SingleMotorData read_data(QSerialPort* serial, int max_tries);
+SingleMotorData read_data(QSerialPort* serial, int max_tries = 10);
 
 void send(QSerialPort* ser, int command, const QByteArray& data, int addr);
-void motor_set_zero(QSerialPort* ser, int addr);
-void motor_enable(QSerialPort* ser, int addr );
-void motor_disable(QSerialPort* ser, int addr);
-void motor_set_offset(QSerialPort* ser, int value, int addr);
+void motor_set_zero(QSerialPort* ser, int addr = ADDR);
+void motor_enable(QSerialPort* ser, int addr = ADDR );
+void motor_disable(QSerialPort* ser, int addr = ADDR);
+void motor_set_offset(QSerialPort* ser, int value, int addr = ADDR);
 void motor_select_slot(QSerialPort* ser, int value);
 
 void motor_set_slot_function(QSerialPort* ser, int slot, const std::vector<int>& function_input);
