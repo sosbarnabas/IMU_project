@@ -4,9 +4,7 @@
 #include <string>
 #include "motor.h"
 
-namespace exoskeleton { namespace motor {
-    struct SingleMotorData;
-}}
+namespace exoskeleton::core {
 
     struct SingleMotorData : public exoskeleton::motor::SingleMotorData {
         uint64_t t = 0;
@@ -46,3 +44,4 @@ namespace exoskeleton { namespace motor {
 
         virtual int n_motors() const = 0;
     };
+}

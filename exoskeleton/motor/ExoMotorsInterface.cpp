@@ -1,6 +1,8 @@
 #include "ExoMotorsInterface.h"
 #include <sstream>
 
+namespace exoskeleton::core{
+
     SingleMotorData SingleMotorData::empty() {
         SingleMotorData data;
         data.enabled = false;
@@ -36,3 +38,4 @@
         std::getline(ss, item, ','); data.n_tries = std::stoi(item);
         return data;
     }
+}

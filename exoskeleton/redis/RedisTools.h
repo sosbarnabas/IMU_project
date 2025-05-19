@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include "../motor/ExoMotorsInterface.h"
 #include "../motor/motor.h"
 
 namespace exoskeleton::redis_tools {
@@ -21,7 +22,7 @@ namespace exoskeleton::redis_tools {
         sw::redis::Redis &redis,
         const std::string &key);
 
-    void xadd_motor_data(sw::redis::Redis &redis, int address, const exoskeleton::motor::SingleMotorData &data);
+    void xadd_motor_data(sw::redis::Redis &redis, int address, const exoskeleton::core::SingleMotorData &data);
     std::optional<int> signal_data_ready(sw::redis::Redis &redis, int n_motors);
     void send_ok(sw::redis::Redis &redis, const std::string &key, const std::string &record);
     void send_error(sw::redis::Redis &redis, const std::string &key, const std::string &error);

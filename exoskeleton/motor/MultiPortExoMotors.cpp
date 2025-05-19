@@ -3,6 +3,8 @@
 #include <sstream>
 #include <stdexcept>
 
+using namespace exoskeleton::core;
+
 SingleMotorData from_base(const exoskeleton::motor::SingleMotorData& base, uint64_t t, int tries) {
     SingleMotorData d;
     d.enabled = base.enabled;

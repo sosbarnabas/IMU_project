@@ -12,7 +12,7 @@
 #include "motor.h"
 #include "ExoMotorsInterface.h"
 
-
+using namespace exoskeleton::core;
 
 SingleMotorData from_base(const exoskeleton::motor::SingleMotorData& base, uint64_t t, int tries);
 

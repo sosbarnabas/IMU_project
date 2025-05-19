@@ -4,54 +4,44 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-
-int main() {
+#include <QCoreApplication>
+#include <Qthread>
+int main(int argc, char *argv[]){
+    QCoreApplication app(argc, argv);
     try {
         std::cout << "[DEBUG] Setting up real controller on actual motor port...\n";
 
-        int address = 1;
+        int address = 0;
         std::string port = "COM3";
 
-        RedisSingleMotorController controller(address, port);
+        int address2 = 1;
+        std::string port2 = "COM17";
 
-        std::cout << "[DEBUG] Starting controller loop thread...\n";
-        std::thread controller_thread([&controller]() {
-            controller.loop();
-        });
+       std::thread controller_thread([address, port]() {
+          RedisSingleMotorController controller(address, port,2);
+          controller.loop();
+       });
 
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        sw::redis::Redis redis("tcp://127.0.0.1:6379");
 
-        std::cout << "[DEBUG] Signaling start...\n";
-        redis.lpush("started:" + std::to_string(address), "start");
-
-        std::string command_list = "command:" + std::to_string(address);
-        std::string t = "123456";
-
-        std::cout << "[DEBUG] Sending test commands...\n";
-        redis.lpush(command_list, t + "|enable|-1|0");
-        redis.lpush(command_list, t + "|read|-1|0");
-        redis.lpush(command_list, t + "|disable|-1|0");
-
-        std::cout << "[DEBUG] Triggering sync events...\n";
-        redis.set("sync:loop:next", "set");
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        redis.set("sync:loop:next", "set");
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        redis.set("sync:loop:next", "set");
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        std::cout << "[DEBUG] Sending exit signal...\n";
-        redis.set("exit", "1");
-        redis.set("sync:loop:next", "set");
 
         controller_thread.join();
-        std::cout << "[DEBUG] Test completed successfully.\n";
+       // std::cout << "[DEBUG] Starting controller loop thread...\n";
+       // std::thread controller_thread([&controller]() {
+       //     controller.loop();
+       // });
+//
+       //std::this_thread::sleep_for(std::chrono::seconds(1));
+       //sw::redis::Redis redis("tcp://127.0.0.1:6379");
+       // std::cout << "[DEBUG] Signaling start...\n";
+       // redis.lpush("started:" + std::to_string(address), "start");
+//
+       // std::cout << "[DEBUG] Test completed successfully.\n";
     }
     catch (const std::exception &e) {
         std::cerr << "[ERROR] Exception: " << e.what() << std::endl;
         return 1;
     }
 
-    return 0;
+    return app.exec();
+   // return 0;
 }

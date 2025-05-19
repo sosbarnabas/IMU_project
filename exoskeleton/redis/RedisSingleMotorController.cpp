@@ -32,6 +32,8 @@ void RedisSingleMotorController::loop() {
             processCommand(*raw_command);
         } else {
             measureAndStore();
+            exoskeleton::redis_tools::signal_data_ready(redis_,n_motors_);
+            exoskeleton::redis_tools::signal_data_ready(redis_,n_motors_);
             //std::cout << "[DEBUG] Nincs parancs " << data.size() << std::endl;
         }
     });
@@ -60,22 +62,22 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
     try {
         if (c == "enable") {
             std::cerr << "[DEBUG] Enabl motor " << idx << std::endl;
-            motor_.raw_enable(idx);
+             auto record = motor_.enable(address_);
             std::cerr << "[DEBUG] Enabled motor " << idx << std::endl;
             exoskeleton::redis_tools::send_ok(
                 redis_,
                 (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
                 + ":enable:" + std::to_string(address_) + ":" + t,
-                "1,0,0,0,0,0,0"
+                record.to_string()
             );
         }
         else if (c == "disable") {
-            motor_.disable(idx);
+             auto record = motor_.disable(address_);
             exoskeleton::redis_tools::send_ok(
                 redis_,
                 (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
                 + ":disable:" + std::to_string(address_) + ":" + t,
-                "ok"
+                record.to_string()
             );
         }
         else if (c == "read") {

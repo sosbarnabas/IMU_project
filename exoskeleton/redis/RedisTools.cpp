@@ -3,6 +3,9 @@
 #include <string>
 #include <optional>
 #include <iterator>
+#include "../motor/ExoMotorsInterface.h"
+
+
 namespace exoskeleton::redis_tools {
     std::unordered_map<std::string, std::string>
     hgetall_map(sw::redis::Redis &redis, const std::string &key) {
@@ -57,8 +60,10 @@ namespace exoskeleton::redis_tools {
         return sub;
     }
 
-    void xadd_motor_data(sw::redis::Redis &redis, int address, const exoskeleton::motor::SingleMotorData &data) {
+    void xadd_motor_data(sw::redis::Redis &redis, int address, const exoskeleton::core::SingleMotorData &data) {
         std::unordered_map<std::string, std::string> fields = {
+            {"t", std::to_string(data.t)},
+            {"n_tries", std::to_string(data.n_tries)},
             {"enabled", std::to_string(data.enabled)},
             {"slot_idx", std::to_string(data.slot_idx)},
             {"cmd_cntr", std::to_string(data.cmd_cntr)},
@@ -87,7 +92,7 @@ namespace exoskeleton::redis_tools {
             auto t = sw::redis::StringView{std::to_string(time)};
             auto p = redis.pipeline();
             p.set("sync:data:cnt","0");
-            p.set("sync:data:cnt",t);
+            p.set("sync:data:ready",t);
             p.exec();
             return time;
         }

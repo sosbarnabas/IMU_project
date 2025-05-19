@@ -3,6 +3,8 @@
 //
 #include "../redis/RedisFacade.h"
 #include <sw/redis++/redis++.h>
+#include "../redis/RedisSingleMotorController.h"
+
 int main(int argc, char *argv[]) {
 
 
