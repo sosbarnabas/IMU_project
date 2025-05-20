@@ -8,6 +8,7 @@
 #include <Qthread>
 int main(int argc, char *argv[]){
     QCoreApplication app(argc, argv);
+
     try {
         std::cout << "[DEBUG] Setting up real controller on actual motor port...\n";
 
@@ -17,25 +18,18 @@ int main(int argc, char *argv[]){
         int address2 = 1;
         std::string port2 = "COM17";
 
-       std::thread controller_thread([address, port]() {
+       QThread* controller_thread =QThread::create([address, port]() {
           RedisSingleMotorController controller(address, port,2);
           controller.loop();
        });
 
 
-
-        controller_thread.join();
-       // std::cout << "[DEBUG] Starting controller loop thread...\n";
-       // std::thread controller_thread([&controller]() {
-       //     controller.loop();
-       // });
-//
-       //std::this_thread::sleep_for(std::chrono::seconds(1));
-       //sw::redis::Redis redis("tcp://127.0.0.1:6379");
-       // std::cout << "[DEBUG] Signaling start...\n";
-       // redis.lpush("started:" + std::to_string(address), "start");
-//
-       // std::cout << "[DEBUG] Test completed successfully.\n";
+       QThread* controller_thread2 = QThread::create([address2, port2]() {
+    RedisSingleMotorController controller(address2, port2,2);
+    controller.loop();
+       });
+        controller_thread->start();
+        controller_thread2->start();
     }
     catch (const std::exception &e) {
         std::cerr << "[ERROR] Exception: " << e.what() << std::endl;

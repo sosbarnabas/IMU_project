@@ -25,11 +25,11 @@ SingleMotorData MultiPortExoMotors::enable(int address) {
     require_serial();
     std::vector<int> weak_func(360);
     for (int i = 0; i < 360; ++i) weak_func[i] = 10 - (20 * i) / 359;
-    set_function(address, weak_func);
+    set_function(address, weak_func,7);
     set_zero(address);
     raw_enable(address);
     auto data = read();
-    int pos = data[address].position;
+    int pos = data[0].position;
     return set_offset(address, -pos);
 }
 
@@ -50,7 +50,7 @@ SingleMotorData MultiPortExoMotors::set_offset(int address, int position) {
 
 SingleMotorData MultiPortExoMotors::upload_function(int address, int slot, const std::vector<int>& function) {
     require_serial();
-    auto serial = serials_.at(address);
+    auto serial = serials_[0];
     auto t0 = std::chrono::steady_clock::now();
     int n_tries = 1;
     while (true) {
@@ -58,10 +58,10 @@ SingleMotorData MultiPortExoMotors::upload_function(int address, int slot, const
         auto data = exoskeleton::motor::read_data(serial, 3);
         if (data.has_value()) {
             if (prev_read_.size() <= static_cast<size_t>(address)) prev_read_.resize(address + 1);
-            auto prev_cntr = prev_read_[address].cmd_cntr;
-            prev_read_[address] = from_base(data, std::chrono::steady_clock::now().time_since_epoch().count(), n_tries);
+            auto prev_cntr = prev_read_[0].cmd_cntr;
+            prev_read_[0] = from_base(data, std::chrono::steady_clock::now().time_since_epoch().count(), n_tries);
             if (prev_cntr != data.cmd_cntr) {
-                return prev_read_[address];
+                return prev_read_[0];
             }
         }
         if (std::chrono::steady_clock::now() - t0 > std::chrono::nanoseconds(timeout_ns_)) {
@@ -72,7 +72,7 @@ SingleMotorData MultiPortExoMotors::upload_function(int address, int slot, const
 }
 SingleMotorData MultiPortExoMotors::select_function(int address, int slot) {
     require_serial();
-    auto serial = serials_.at(address);
+    auto serial = serials_[0];
     auto t0 = std::chrono::steady_clock::now();
     int n_tries = 1;
     while (true) {
@@ -80,10 +80,10 @@ SingleMotorData MultiPortExoMotors::select_function(int address, int slot) {
         auto data = exoskeleton::motor::read_data(serial, 3);
         if (data.has_value()) {
             if (prev_read_.size() <= static_cast<size_t>(address)) prev_read_.resize(address + 1);
-            auto prev_cntr = prev_read_[address].cmd_cntr;
-            prev_read_[address] = from_base(data, std::chrono::steady_clock::now().time_since_epoch().count(), n_tries);
+            auto prev_cntr = prev_read_[0].cmd_cntr;
+            prev_read_[0] = from_base(data, std::chrono::steady_clock::now().time_since_epoch().count(), n_tries);
             if (prev_cntr != data.cmd_cntr) {
-                return prev_read_[address];
+                return prev_read_[0];
             }
         }
         if (std::chrono::steady_clock::now() - t0 > std::chrono::nanoseconds(timeout_ns_)) {
@@ -120,7 +120,7 @@ MultiPortExoMotors::MultiPortExoMotors(const std::vector<std::string>& ports, do
 SerialStatus MultiPortExoMotors::connect() {
     serials_.clear();
     for (const auto& port : ports_) {
-        QSerialPort* serial = new QSerialPort("COM3");
+        QSerialPort* serial = new QSerialPort(QString::fromStdString((port)));
         serial->setBaudRate(1000000);
         serial->setDataBits(QSerialPort::Data8);
         serial->setParity(QSerialPort::NoParity);
@@ -177,16 +177,16 @@ void MultiPortExoMotors::require_serial() const {
 }
 
 SingleMotorData MultiPortExoMotors::with_cntr_check(int address, std::function<void(QSerialPort*, int)> func) {
-    auto serial = serials_.at(address);
+    auto serial = serials_[0];
     auto t0 = std::chrono::steady_clock::now();
     int n_tries = 1;
     while (true) {
-        func(serial, address);
+        func(serial,0);
         auto data = exoskeleton::motor::read_data(serial, 3);
         if (data.has_value()) {
-            auto prev_cntr = prev_read_[address].cmd_cntr;
+            auto prev_cntr = prev_read_[0].cmd_cntr;
             auto now = std::chrono::steady_clock::now().time_since_epoch().count();
-            prev_read_[address] = from_base(data, now, n_tries);
+            prev_read_[0] = from_base(data, now, n_tries);
 
             if (prev_cntr != data.cmd_cntr) {
                 auto now = std::chrono::steady_clock::now().time_since_epoch().count();
@@ -201,16 +201,16 @@ SingleMotorData MultiPortExoMotors::with_cntr_check(int address, std::function<v
 }
 
 SingleMotorData MultiPortExoMotors::with_cntr_check(int address, std::function<void(QSerialPort*, int, int)> func, int value) {
-    auto serial = serials_.at(address);
+    auto serial = serials_[0];
     auto t0 = std::chrono::steady_clock::now();
     int n_tries = 1;
     while (true) {
-        func(serial, value, address);
+        func(serial, value, 0);
         auto data = exoskeleton::motor::read_data(serial, 3);
         if (data.has_value()) {
-            auto prev_cntr = prev_read_[address].cmd_cntr;
+            auto prev_cntr = prev_read_[0].cmd_cntr;
             auto now = std::chrono::steady_clock::now().time_since_epoch().count();
-            prev_read_[address] = from_base(data, now, n_tries);
+            prev_read_[0] = from_base(data, now, n_tries);
 
             if (prev_cntr != data.cmd_cntr) {
                 auto now = std::chrono::steady_clock::now().time_since_epoch().count();
