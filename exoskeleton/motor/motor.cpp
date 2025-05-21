@@ -47,6 +47,10 @@ namespace exoskeleton::motor {
         }
 
         friend std::ostream& operator<<(std::ostream &os, const SingleMotorData& data);
+
+        bool is_valid() const {
+            return !(slot_idx == 0 && cmd_cntr == 0 && position == 0 && torque == 0 && !enabled);
+        }
     };
 
     std::ostream& operator<<(std::ostream& os, const SingleMotorData& data){
@@ -145,7 +149,6 @@ namespace exoskeleton::motor {
 
     void send(QSerialPort* ser, int command, const QByteArray& data = {}, int addr = ADDR) {
         QByteArray full_command;
-        
         full_command.append(static_cast<uint8_t>(HEADER));
         full_command.append(static_cast<uint8_t>(addr));
         full_command.append(static_cast<uint8_t>(command));
