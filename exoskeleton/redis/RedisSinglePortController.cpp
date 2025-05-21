@@ -72,7 +72,6 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
     const auto &t = parts[0];
     const auto &c = parts[1];
     int idx = std::stoi(parts[2]);
-    const auto &v = parts[3];
     bool partial = (idx == -1);
 
     std::cerr << t << " " << c << " " << idx << std::endl;

@@ -1,21 +1,10 @@
 // SinglePortExoMotor.cpp
 #include "SinglePortExoMotor.h"
+#include "MultiPortExoMotors.h"
 #include <sstream>
 #include <stdexcept>
 
 using namespace exoskeleton::core;
-
-SingleMotorData from_base(const exoskeleton::motor::SingleMotorData& base, uint64_t t, int tries) {
-    SingleMotorData d;
-    d.enabled = base.enabled;
-    d.slot_idx = base.slot_idx;
-    d.cmd_cntr = base.cmd_cntr;
-    d.position = base.position;
-    d.torque = base.torque;
-    d.t = t;
-    d.n_tries = tries;
-    return d;
-}
 
 SinglePortExoMotor::SinglePortExoMotor(const std::string& port, double timeout_sec)
     : port_(port), timeout_ns_(static_cast<int64_t>(timeout_sec * 1e9)) {}

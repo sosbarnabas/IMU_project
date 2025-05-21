@@ -5,7 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <iostream>
-
+#include <nlohmann/json.hpp>
 // Redis key constants
 static const std::string STARTED_KEY = "started";
 static const std::string SYNC_KEY = "sync:loop:next";
@@ -14,6 +14,16 @@ static const std::string COMMAND_KEY = "command";
 static const std::string COMMAND_RESULT_KEY = "commandres";
 static const std::string COMMAND_PARTIAL_RESULT_KEY = "commandrespart";
 static const std::string EXIT_KEY = "exit";
+
+std::vector<int> parseJsonArray(const std::string& json_str) {
+    auto j = nlohmann::json::parse(json_str);
+    std::vector<int> result;
+
+    for (const auto& el : j) {
+        result.push_back(el.get<int>());
+    }
+    return result;
+}
 
 void RedisSingleMotorController::loop() {
     redis_.brpop("started:" + std::to_string(address_), 0);
@@ -33,7 +43,7 @@ void RedisSingleMotorController::loop() {
         } else {
             measureAndStore();
             exoskeleton::redis_tools::signal_data_ready(redis_,n_motors_);
-            //exoskeleton::redis_tools::signal_data_ready(redis_,n_motors_);
+            exoskeleton::redis_tools::signal_data_ready(redis_,n_motors_);
             //std::cout << "[DEBUG] Nincs parancs " << data.size() << std::endl;
         }
     });
@@ -62,7 +72,7 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
     try {
         if (c == "enable") {
             std::cerr << "[DEBUG] Enabl motor " << idx <<" "<< address_ << std::endl;
-             auto record = motor_.enable(address_);
+             auto record = motor_.enable(0);
             std::cerr << "[DEBUG] Enabled motor " << idx << std::endl;
             exoskeleton::redis_tools::send_ok(
                 redis_,
@@ -72,7 +82,7 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
             );
         }
         else if (c == "disable") {
-             auto record = motor_.disable(address_);
+             auto record = motor_.disable(0);
             exoskeleton::redis_tools::send_ok(
                 redis_,
                 (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
@@ -83,12 +93,43 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
         else if (c == "read") {
             measureAndStore();
         }
-        else if (c == "zero") {
-            auto record = motor_.set_zero(address_);
+        else if (c == "fn_upload") {
+            if (parts.size() < 4) {
+                throw std::runtime_error("Missing value for fn_upload");
+            }
+            std::string json_str = parts[3];
+            auto values = parseJsonArray(json_str);
+
+            if (!values.empty()) {
+                int slot = values.front();
+                values.erase(values.begin());
+
+                auto record = motor_.upload_function(0,slot,values);
+
+                exoskeleton::redis_tools::send_ok(
+                    redis_,
+                    (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
+                    + ":fn_upload:" + std::to_string(address_) + ":" + t,
+                    record.to_string()
+                );
+            }
+        }
+        else if (c=="fn_select") {
+            int slot = std::stoi(parts[3]);
+            auto record = motor_.select_function(0,slot);
             exoskeleton::redis_tools::send_ok(
                 redis_,
-            (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-            +"zero"+std::to_string(address_)+":"+t,
+                (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
+                + ":select:" + std::to_string(address_) + ":" + t,
+                    record.to_string()
+                    );
+        }
+        else if (c == "zero") {
+            auto record = motor_.set_zero(0);
+            exoskeleton::redis_tools::send_ok(
+                redis_,
+                (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
+                    + ":zero:" + std::to_string(address_) + ":" + t,
             record.to_string());
         }
         else {
