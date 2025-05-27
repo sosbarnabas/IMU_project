@@ -78,7 +78,7 @@ namespace exoskeleton::redis_tools {
 
 
     void send_ok(sw::redis::Redis &redis, const std::string &key, const std::string &record) {
-        std::cerr << key << " " << record << std::endl;
+        //std::cerr << key << " " << record << std::endl;
         redis.lpush(key, "OK:" + record);
     }
 

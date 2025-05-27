@@ -20,6 +20,7 @@ class MultiPortExoMotors : public ExoMotorsInterface {
 public:
     MultiPortExoMotors(const std::vector<std::string>& ports, double timeout_sec = 3.0);
 
+
     SerialStatus connect() override;
     SerialStatus disconnect() override;
     SerialStatus status() const override;
@@ -40,6 +41,7 @@ public:
     int n_motors() const override;
 
 private:
+    std::vector<int> weak_func;
     std::vector<std::string> ports_;
     std::vector<QSerialPort*> serials_;
     std::vector<SingleMotorData> prev_read_;

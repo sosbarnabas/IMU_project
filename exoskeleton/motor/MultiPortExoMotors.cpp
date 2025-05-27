@@ -2,6 +2,7 @@
 #include "MultiPortExoMotors.h"
 #include <sstream>
 #include <stdexcept>
+#include <thread>
 
 using namespace exoskeleton::core;
 
@@ -22,14 +23,15 @@ SingleMotorData MultiPortExoMotors::raw_enable(int address) {
 }
 
 SingleMotorData MultiPortExoMotors::enable(int address) {
+
     require_serial();
-    std::vector<int> weak_func(360);
-    for (int i = 0; i < 360; ++i) weak_func[i] = 10 - (20 * i) / 359;
     set_function(address, weak_func,7);
     set_zero(address);
     raw_enable(address);
     auto data = read();
+
     int pos = data[address].position;
+
     return set_offset(address, -pos);
 }
 
@@ -114,7 +116,10 @@ int MultiPortExoMotors::n_motors() const {
 }
 
 MultiPortExoMotors::MultiPortExoMotors(const std::vector<std::string>& ports, double timeout_sec)
-    : ports_(ports), timeout_ns_(static_cast<int64_t>(timeout_sec * 1e9)) {}
+    : ports_(ports), timeout_ns_(static_cast<int64_t>(timeout_sec * 1e9)) {
+    weak_func.reserve(360);
+    for (int i = 0; i < 360; ++i) weak_func[i] = 10 - (20 * i) / 359;
+}
 
 
 SerialStatus MultiPortExoMotors::connect() {
@@ -128,6 +133,7 @@ SerialStatus MultiPortExoMotors::connect() {
 
         if (!serial->open(QIODevice::ReadWrite)) {
             last_connect_result_ = "CONNECT_OPEN_FAILED";
+            std::cerr << "port hiba: " << port << std::endl;
             throw std::runtime_error("Failed to open port: " + port);
         }
         serials_.push_back(serial);
@@ -192,12 +198,15 @@ SingleMotorData MultiPortExoMotors::with_cntr_check(int address, std::function<v
                 auto now = std::chrono::steady_clock::now().time_since_epoch().count();
                 return from_base(data, now, n_tries);
             }
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
             if (std::chrono::steady_clock::now() - t0 > std::chrono::nanoseconds(timeout_ns_)) {
                 throw std::runtime_error("Timeout in with_cntr_check");
             }
         }
+
         ++n_tries;
     }
+
 }
 
 SingleMotorData MultiPortExoMotors::with_cntr_check(int address, std::function<void(QSerialPort*, int, int)> func, int value) {

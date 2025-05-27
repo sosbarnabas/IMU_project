@@ -15,6 +15,8 @@ static const std::string COMMAND_RESULT_KEY = "commandres";
 static const std::string COMMAND_PARTIAL_RESULT_KEY = "commandrespart";
 static const std::string EXIT_KEY = "exit";
 
+
+
 std::vector<int> parseJsonArray(const std::string& json_str) {
     auto j = nlohmann::json::parse(json_str);
     std::vector<int> result;
@@ -27,7 +29,7 @@ std::vector<int> parseJsonArray(const std::string& json_str) {
 
 void RedisSingleMotorController::loop() {
     redis_.brpop("started:" + std::to_string(address_), 0);
-    std::cout << "[DEBUG] Start jelzés megérkezett! addres: "<< address_  << std::endl;
+   //std::cout << "[DEBUG] Start jelzés megérkezett! addres: "<< address_  << std::endl;
     motor_.connect();
     auto subscriber = exoskeleton::redis_tools::make_keyspace_subscriber(redis_,"sync:loop:next");
     subscriber.subscribe("sync:loop:next");
@@ -37,12 +39,11 @@ void RedisSingleMotorController::loop() {
         if (msg != "set") return;
 
         auto raw_command = redis_.rpop("command:" + std::to_string(address_));
+
         if (raw_command) {
-            std::cout << "[DEBUG] Parancs: " << *raw_command << std::endl;
             processCommand(*raw_command);
         } else {
             measureAndStore();
-            exoskeleton::redis_tools::signal_data_ready(redis_,n_motors_);
             exoskeleton::redis_tools::signal_data_ready(redis_,n_motors_);
             //std::cout << "[DEBUG] Nincs parancs " << data.size() << std::endl;
         }
@@ -67,13 +68,13 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
     int idx = std::stoi(parts[2]);
     bool partial = (idx == -1);
 
-    std::cerr << t << " " << c << " " << idx << std::endl;
+   // std::cerr << t << " " << c << " " << idx << std::endl;
 
     try {
         if (c == "enable") {
-            std::cerr << "[DEBUG] Enabl motor " << idx <<" "<< address_ << std::endl;
+
              auto record = motor_.enable(0);
-            std::cerr << "[DEBUG] Enabled motor " << idx << std::endl;
+
             exoskeleton::redis_tools::send_ok(
                 redis_,
                 (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
@@ -82,7 +83,11 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
             );
         }
         else if (c == "disable") {
+           // auto t0 = std::chrono::steady_clock::now();
              auto record = motor_.disable(0);
+            //auto t1 = std::chrono::steady_clock::now();
+            //auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0);
+            //std::cout << dur.count() << "ms" << std::endl;
             exoskeleton::redis_tools::send_ok(
                 redis_,
                 (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
@@ -120,7 +125,7 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
             exoskeleton::redis_tools::send_ok(
                 redis_,
                 (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-                + ":select:" + std::to_string(address_) + ":" + t,
+                + ":fn_select:" + std::to_string(address_) + ":" + t,
                     record.to_string()
                     );
         }
@@ -131,6 +136,23 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
                 (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
                     + ":zero:" + std::to_string(address_) + ":" + t,
             record.to_string());
+        }
+        else if (c == "function") {
+
+            std::string json_str = parts[3];
+            auto values = parseJsonArray(json_str);
+
+            if (!values.empty()) {
+
+                auto record = motor_.set_function(0,values,7);
+
+                exoskeleton::redis_tools::send_ok(
+                    redis_,
+                    (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
+                    + ":function:" + std::to_string(address_) + ":" + t,
+                    record.to_string()
+                );
+            }
         }
         else {
             std::cerr << "Unknown command: " << c << std::endl;

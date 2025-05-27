@@ -9,6 +9,7 @@
 #include <QSerialPortInfo>
 #include <QDebug>
 #include <QtEndian>
+#include <thread>
 namespace exoskeleton::motor {
     // Constants
     constexpr uint8_t HEADER = 0x0A;
@@ -99,14 +100,14 @@ namespace exoskeleton::motor {
     }
 
     SingleMotorData read_data(QSerialPort* serial, int max_tries = 10) {
-        serial->waitForReadyRead(100);
-        QByteArray buffer;
+        //serial->waitForReadyRead(100);
 
+        QByteArray buffer;
+        serial->flush();
         int tries = 0;
         while (tries < max_tries) {
             if (serial->waitForReadyRead(100)) {
                 buffer += serial->readAll();
-
                 while (buffer.size() >= 8) { // HEADER(1) + DATA(7)
                     int headerIndex = buffer.indexOf(HEADER);
                     if (headerIndex < 0) {
@@ -133,7 +134,6 @@ namespace exoskeleton::motor {
                             reinterpret_cast<const uchar*>(data.constData() + 1)
                         );
                         int32_t torque = static_cast<int32_t>(data.at(5));
-
                         return SingleMotorData(enabled, slot_idx, cmd_cntr, position, torque);
                     } else {
                         std::cerr << "Checksum hiba, adatok dobása..." << std::endl;
