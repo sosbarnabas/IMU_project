@@ -59,5 +59,8 @@
   }, {
     "name" : "qtserialport",
     "version>=" : "6.8.3"
+  }, {
+    "name" : "nlohmann-json",
+    "version>=" : "3.12.0"
   } ]
 }
