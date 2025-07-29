@@ -25,7 +25,8 @@ add_executable(REDIS_TEST tests/Real_RedisSingleMotorController_Test.cpp
         exoskeleton/motor/motor.cpp
         exoskeleton/motor/MultiPortExoMotors.cpp
         exoskeleton/motor/ExoMotorsInterface.cpp
-        )
+        exoskeleton/redis/redis_backbone.cpp
+)
 
 add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
         exoskeleton/redis/RedisFacade.cpp

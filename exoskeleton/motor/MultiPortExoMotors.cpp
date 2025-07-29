@@ -116,7 +116,7 @@ int MultiPortExoMotors::n_motors() const {
 }
 
 MultiPortExoMotors::MultiPortExoMotors(const std::vector<std::string>& ports, double timeout_sec)
-    : ports_(ports), timeout_ns_(static_cast<int64_t>(timeout_sec * 1e9)) {
+    : weak_func(360), ports_(ports), timeout_ns_(static_cast<int64_t>(timeout_sec * 1e9)) {
     weak_func.reserve(360);
     for (int i = 0; i < 360; ++i) weak_func[i] = 10 - (20 * i) / 359;
 }

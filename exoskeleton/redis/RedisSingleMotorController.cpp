@@ -50,6 +50,11 @@ void RedisSingleMotorController::loop() {
     });
 
     while (true) {
+        auto const& exit_flag = redis_.get("exit");
+        if (exit_flag && *exit_flag == "1") {
+            std::cout << "Exited by \"exit\" command" << std::endl;
+            break;
+        }
         subscriber.consume();  // ez figyeli az üzeneteket
     }
 }
@@ -68,7 +73,7 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
     int idx = std::stoi(parts[2]);
     bool partial = (idx == -1);
 
-   // std::cerr << t << " " << c << " " << idx << std::endl;
+   std::cerr << t << " " << c << " " << idx << std::endl;
 
     try {
         if (c == "enable") {
