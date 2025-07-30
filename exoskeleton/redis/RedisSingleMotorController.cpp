@@ -50,6 +50,7 @@ void RedisSingleMotorController::loop() {
     while (true) {
         if (auto const exit_flag = redis_.get("exit");
             exit_flag && *exit_flag == "1") {
+            motor_.disable(0);  // TODO emergency_stop
             std::cout << "Exited by \"exit\" command" << std::endl;
             break;
         }
@@ -57,7 +58,7 @@ void RedisSingleMotorController::loop() {
         if (auto const stop_flag = redis_.getset("stop:" + std::to_string(address_), "0");
             stop_flag && *stop_flag == "1") {
             std::cout << "stop" << std::endl;
-            auto const data = motor_.disable(0);
+            auto const data = motor_.disable(0);  // TODO emergency_stop
             exoskeleton::redis_tools::send_ok(
                 redis_,
                 COMMAND_RESULT_KEY
