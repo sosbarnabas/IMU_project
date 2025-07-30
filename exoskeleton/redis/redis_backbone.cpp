@@ -2,7 +2,7 @@
 #include <iostream>
 
 RedisBackbone::RedisBackbone(
-    std::chrono::seconds const &dt,
+    std::chrono::seconds const& dt,
     std::string const& redis_url
     ) : redis_{redis_url}, dt_{dt} {}
 
@@ -15,8 +15,7 @@ auto RedisBackbone::operator() () -> void {
 
         // ... then check for exit condition.
         // This way they also can notice exit condition.
-        auto const& exit_flag = redis_.get("exit");
-        if (exit_flag && *exit_flag == "1") {
+        if (auto const& exit_flag = redis_.get("exit"); exit_flag && *exit_flag == "1") {
             std::cout << "Exited by \"exit\" command" << std::endl;
             break;
         }
