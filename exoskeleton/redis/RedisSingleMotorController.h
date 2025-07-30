@@ -20,5 +20,5 @@ private:
     int n_motors_;
 
     void processCommand(const std::string& raw_command);
-    void measureAndStore();
+    auto measureAndStore() -> SingleMotorData;
 };

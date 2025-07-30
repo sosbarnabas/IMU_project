@@ -28,11 +28,9 @@ std::vector<int> parseJsonArray(const std::string& json_str) {
 }
 
 void RedisSingleMotorController::loop() {
-    //redis_.brpop("started:" + std::to_string(address_), 0);
-   //std::cout << "[DEBUG] Start jelzés megérkezett! addres: "<< address_  << std::endl;
     motor_.connect();
+
     auto subscriber = exoskeleton::redis_tools::make_keyspace_subscriber(redis_,"sync:loop:next");
-    subscriber.subscribe("sync:loop:next");
 
     subscriber.on_message([this](std::string channel, std::string msg) {
        // std::cout << "[DEBUG] sync:loop:next triggerelt: " << msg << std::endl;
@@ -50,10 +48,23 @@ void RedisSingleMotorController::loop() {
     });
 
     while (true) {
-        auto const& exit_flag = redis_.get("exit");
-        if (exit_flag && *exit_flag == "1") {
+        if (auto const exit_flag = redis_.get("exit");
+            exit_flag && *exit_flag == "1") {
             std::cout << "Exited by \"exit\" command" << std::endl;
             break;
+        }
+
+        if (auto const stop_flag = redis_.getset("stop:" + std::to_string(address_), "0");
+            stop_flag && *stop_flag == "1") {
+            std::cout << "stop" << std::endl;
+            auto const data = motor_.disable(0);
+            exoskeleton::redis_tools::send_ok(
+                redis_,
+                COMMAND_RESULT_KEY
+                + ":stop:" + std::to_string(address_),
+                data.to_string()
+            );
+            continue;
         }
         subscriber.consume();  // ez figyeli az üzeneteket
     }
@@ -101,7 +112,13 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
             );
         }
         else if (c == "read") {
-            measureAndStore();
+            auto const data = measureAndStore();
+            exoskeleton::redis_tools::send_ok(
+                redis_,
+                (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
+                + ":read:" + std::to_string(address_) + ":" + t,
+                data.to_string()
+            );
         }
         else if (c == "fn_upload") {
             if (parts.size() < 4) {
@@ -159,6 +176,10 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
                 );
             }
         }
+        // TODO offset
+        // TODO connect
+        // TODO disconnect
+        // TODO status
         else {
             std::cerr << "Unknown command: " << c << std::endl;
         }
@@ -174,9 +195,10 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
     }
 }
 
-void RedisSingleMotorController::measureAndStore() {
+auto RedisSingleMotorController::measureAndStore() -> SingleMotorData {
     auto data = motor_.read();
     if (!data.empty()) {
         exoskeleton::redis_tools::xadd_motor_data(redis_, address_, data[0]);
     }
+    return data[0];
 }
