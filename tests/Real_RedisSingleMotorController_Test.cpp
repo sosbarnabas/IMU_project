@@ -39,13 +39,6 @@ int main(int argc, char *argv[]){
               thread->start();
           }
 
-
-        redis.lpush("started:0","start");
-        redis.lpush("started:1","start");
-        redis.lpush("started:2","start");
-        redis.lpush("started:3","start");
-        redis.lpush("started:4","start");
-
     }
     catch (const std::exception &e) {
         std::cerr << "[ERROR] Exception: " << e.what() << std::endl;

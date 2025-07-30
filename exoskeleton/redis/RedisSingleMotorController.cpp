@@ -28,7 +28,7 @@ std::vector<int> parseJsonArray(const std::string& json_str) {
 }
 
 void RedisSingleMotorController::loop() {
-    redis_.brpop("started:" + std::to_string(address_), 0);
+    //redis_.brpop("started:" + std::to_string(address_), 0);
    //std::cout << "[DEBUG] Start jelzés megérkezett! addres: "<< address_  << std::endl;
     motor_.connect();
     auto subscriber = exoskeleton::redis_tools::make_keyspace_subscriber(redis_,"sync:loop:next");
