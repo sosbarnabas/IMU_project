@@ -20,6 +20,8 @@ namespace exoskeleton::core {
     struct SerialStatus {
         bool connected;
         std::string name;
+
+        [[nodiscard]] std::string to_string() const;
     };
 
     class ExoMotorsInterface {

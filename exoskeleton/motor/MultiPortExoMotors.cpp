@@ -123,6 +123,12 @@ MultiPortExoMotors::MultiPortExoMotors(const std::vector<std::string>& ports, do
 
 
 SerialStatus MultiPortExoMotors::connect() {
+    // TODO ne nyisd újra, ha már nyitva van
+    for (auto& s: serials_) {
+        if (s->isOpen()) {
+            s->close();
+        }
+    }
     serials_.clear();
     for (const auto& port : ports_) {
         QSerialPort* serial = new QSerialPort(QString::fromStdString((port)));

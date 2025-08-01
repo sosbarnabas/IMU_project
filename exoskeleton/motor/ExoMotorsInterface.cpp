@@ -43,4 +43,12 @@ namespace exoskeleton::core{
         std::getline(ss, item, ','); data.n_tries = std::stoi(item);
         return data;
     }
+
+    auto SerialStatus::to_string() const -> std::string {
+        auto s = std::to_string(this->connected);
+        s += "|";
+        s += this->name;
+        return s;
+    }
+
 }

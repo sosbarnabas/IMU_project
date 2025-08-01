@@ -85,119 +85,85 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
     int idx = std::stoi(parts[2]);
     bool partial = (idx == -1);
 
-   std::cerr << t << " " << c << " " << idx << std::endl;
+    std::cerr << t << " " << c << " " << idx << std::endl;
 
+    std::string key{partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY};
+    key += ":";
+    key += c;
+    key += ":";
+    key += std::to_string(address_);
+    key += ":";
+    key += t;
     try {
-        if (c == "enable") {
-
-             auto record = motor_.enable(0);
-
-            exoskeleton::redis_tools::send_ok(
-                redis_,
-                (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-                + ":enable:" + std::to_string(address_) + ":" + t,
-                record.to_string()
-            );
+        std::string response;
+        if (c == "connect") {
+            auto const record = motor_.connect();
+            response = record.to_string();
+        }
+        else if (c == "disconnect") {
+            auto const record = motor_.disconnect();
+            response = record.to_string();
+        }
+        else if (c == "status") {
+            auto const record = motor_.status();
+            response = record.to_string();
+        }
+        else if (c == "enable") {
+            auto const record = motor_.enable(0);
+            response = record.to_string();
         }
         else if (c == "disable") {
-           // auto t0 = std::chrono::steady_clock::now();
-             auto record = motor_.disable(0);
-            //auto t1 = std::chrono::steady_clock::now();
-            //auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0);
-            //std::cout << dur.count() << "ms" << std::endl;
-            exoskeleton::redis_tools::send_ok(
-                redis_,
-                (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-                + ":disable:" + std::to_string(address_) + ":" + t,
-                record.to_string()
-            );
+            auto const record = motor_.disable(0);
+            response = record.to_string();
         }
         else if (c == "read") {
             auto const data = measureAndStore();
-            exoskeleton::redis_tools::send_ok(
-                redis_,
-                (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-                + ":read:" + std::to_string(address_) + ":" + t,
-                data.to_string()
-            );
+            response = data.to_string();
         }
         else if (c == "fn_upload") {
             if (parts.size() < 4) {
                 throw std::runtime_error("Missing value for fn_upload");
             }
-            std::string json_str = parts[3];
-            auto values = parseJsonArray(json_str);
-
-            if (!values.empty()) {
+            std::string const& json_str = parts[3];
+            if (auto values = parseJsonArray(json_str); !values.empty()) {
                 int slot = values.front();
                 values.erase(values.begin());
 
                 auto record = motor_.upload_function(0,slot,values);
-
-                exoskeleton::redis_tools::send_ok(
-                    redis_,
-                    (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-                    + ":fn_upload:" + std::to_string(address_) + ":" + t,
-                    record.to_string()
-                );
+                response = record.to_string();
             }
         }
         else if (c=="fn_select") {
             int slot = std::stoi(parts[3]);
-            auto record = motor_.select_function(0,slot);
-            exoskeleton::redis_tools::send_ok(
-                redis_,
-                (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-                + ":fn_select:" + std::to_string(address_) + ":" + t,
-                    record.to_string()
-                    );
+            auto const record = motor_.select_function(0,slot);
+            response = record.to_string();
         }
         else if (c == "zero") {
-            auto record = motor_.set_zero(0);
-            exoskeleton::redis_tools::send_ok(
-                redis_,
-                (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-                    + ":zero:" + std::to_string(address_) + ":" + t,
-            record.to_string());
+            auto const record = motor_.set_zero(0);
+            response = record.to_string();
         }
         else if (c == "function") {
-
-            std::string json_str = parts[3];
-            auto values = parseJsonArray(json_str);
-
-            if (!values.empty()) {
-
-                auto record = motor_.set_function(0,values,7);
-
-                exoskeleton::redis_tools::send_ok(
-                    redis_,
-                    (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-                    + ":function:" + std::to_string(address_) + ":" + t,
-                    record.to_string()
-                );
+            std::string const& json_str = parts[3];
+            if (auto values = parseJsonArray(json_str); !values.empty()) {
+                auto const record = motor_.set_function(0,values,7);
+                response = record.to_string();
             }
         }
         // TODO offset
-        // TODO connect
-        // TODO disconnect
-        // TODO status
         else {
             std::cerr << "Unknown command: " << c << std::endl;
         }
+
+        exoskeleton::redis_tools::send_ok(redis_, key, response);
     }
     catch (const std::exception &e) {
-        std::cerr << "[DEBUG] Ixepswn " << idx << std::endl;
-        exoskeleton::redis_tools::send_error(
-            redis_,
-            (partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY)
-            + ":" + c + ":" + std::to_string(address_) + ":" + t,
-            e.what()
-        );
+        std::cerr << "[DEBUG] Exception at: " << idx << std::endl;
+        exoskeleton::redis_tools::send_error(redis_, key, e.what());
     }
 }
 
 auto RedisSingleMotorController::measureAndStore() -> SingleMotorData {
-    auto data = motor_.read();
+    auto const data = motor_.read();
     if (!data.empty()) {
         exoskeleton::redis_tools::xadd_motor_data(redis_, address_, data[0]);
     }
