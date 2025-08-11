@@ -53,8 +53,8 @@ private:
     std::string join_ports() const;
     std::vector<SingleMotorData> internal_read(int max_tries = 1);
 
-    SingleMotorData with_cntr_check(int address, std::function<void(QSerialPort*, int)> func);
-    SingleMotorData with_cntr_check(int address, std::function<void(QSerialPort*, int, int)> func, int value);
+    SingleMotorData with_cntr_check(const int address, const std::function<void(QSerialPort&, int)>& func);
+    SingleMotorData with_cntr_check(const int address, const std::function<void(QSerialPort&, int, int)>& func, int value);
 };
 
 } // exoskeleton::core

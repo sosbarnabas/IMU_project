@@ -11,6 +11,8 @@
 #include <thread>
 #include <chrono>
 
+#include "../exoskeleton/motor/motor.h"
+
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
 
@@ -20,14 +22,13 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    QSerialPort* ser = exoskeleton::motor::open_serial();
+    const auto ser = exoskeleton::motor::open_serial_port(exoskeleton::motor::find_port_name_by_serial_num("CSTNY004"));
     for (int i = 0 ; i < 1000; i++) {
         auto t0 = std::chrono::steady_clock::now();
-        auto data = exoskeleton::motor::read_data(ser,3);
+        auto data = exoskeleton::motor::read_data(*ser,3);
         auto t1 = std::chrono::steady_clock::now();
         auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0);
         std::cerr << dur.count() << "ms " << data << std::endl;
     }
-    ser->deleteLater();
     return app.exec();
 }
