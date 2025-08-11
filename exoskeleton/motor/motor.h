@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 #include <string>
+#include <memory>
 #include <QSerialPort>
 #include <QDebug>
 
@@ -61,7 +62,7 @@ struct SingleMotorData {
 std::string find_cstny_usb_com_port();
 [[nodiscard]] auto find_port_name_by_serial_num(std::string const& sn) -> std::string;
 
-[[nodiscard]] auto open_serial_port(std::string const& name) -> QSerialPort*;
+[[nodiscard]] auto open_serial_port(std::string const& name) -> std::unique_ptr<QSerialPort>;
 QSerialPort* open_serial(int baudrate = 1000000);
 
 int8_t calculateChecksum(const QByteArray &data);

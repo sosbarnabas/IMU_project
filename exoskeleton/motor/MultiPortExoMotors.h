@@ -12,7 +12,7 @@
 #include "motor.h"
 #include "ExoMotorsInterface.h"
 
-using namespace exoskeleton::core;
+namespace exoskeleton::core {
 
 SingleMotorData from_base(const exoskeleton::motor::SingleMotorData& base, uint64_t t, int tries);
 
@@ -43,7 +43,7 @@ public:
 private:
     std::vector<int> weak_func;
     std::vector<std::string> ports_;
-    std::vector<QSerialPort*> serials_;
+    std::vector<std::unique_ptr<QSerialPort>> serials_;
     std::vector<SingleMotorData> prev_read_;
     std::vector<SingleMotorData> latest_full_read_;
     int64_t timeout_ns_;
@@ -57,3 +57,4 @@ private:
     SingleMotorData with_cntr_check(int address, std::function<void(QSerialPort*, int, int)> func, int value);
 };
 
+} // exoskeleton::core

@@ -4,6 +4,7 @@
 #include "../motor/MultiPortExoMotors.h"
 #include "RedisTools.h"
 
+namespace exoskeleton::core {
 
 class RedisSingleMotorController {
 public:
@@ -22,3 +23,5 @@ private:
     void processCommand(const std::string& raw_command);
     auto measureAndStore() -> SingleMotorData;
 };
+
+} // exoskeleton::core

@@ -66,8 +66,8 @@ namespace exoskeleton::motor {
         throw SerialNumberNotFound{sn};
     }
 
-    auto open_serial_port(std::string const& name) -> QSerialPort* {
-        auto ser = new QSerialPort{QString::fromStdString(name)};
+    auto open_serial_port(std::string const& name) -> std::unique_ptr<QSerialPort> {
+        auto ser = std::make_unique<QSerialPort>(QString::fromStdString(name));
 
         if (!ser->open(QIODevice::ReadWrite)) {
             throw CannotOpenSerialPort{name};

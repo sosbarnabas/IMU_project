@@ -1,6 +1,8 @@
 #include "redis_backbone.h"
 #include <iostream>
 
+namespace exoskeleton::core {
+
 RedisBackbone::RedisBackbone(
     std::chrono::seconds const& dt,
     std::string const& redis_url
@@ -23,3 +25,5 @@ auto RedisBackbone::operator() () -> void {
         std::this_thread::sleep_until(t0 + this->dt_);
     }
 }
+
+} // exoskeleton::core

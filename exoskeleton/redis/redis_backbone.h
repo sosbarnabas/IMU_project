@@ -4,6 +4,8 @@
 #include <chrono>
 #include <string>
 
+namespace exoskeleton::core {
+
 class RedisBackbone {
 public:
     RedisBackbone(
@@ -18,3 +20,5 @@ private:
     sw::redis::Redis redis_;
     std::chrono::seconds dt_;
 };
+
+} // exoskeleton::core

@@ -6,6 +6,9 @@
 #include <vector>
 #include <iostream>
 #include <nlohmann/json.hpp>
+
+namespace exoskeleton::core {
+
 // Redis key constants
 static const std::string STARTED_KEY = "started";
 static const std::string SYNC_KEY = "sync:loop:next";
@@ -14,8 +17,6 @@ static const std::string COMMAND_KEY = "command";
 static const std::string COMMAND_RESULT_KEY = "commandres";
 static const std::string COMMAND_PARTIAL_RESULT_KEY = "commandrespart";
 static const std::string EXIT_KEY = "exit";
-
-
 
 std::vector<int> parseJsonArray(const std::string& json_str) {
     auto j = nlohmann::json::parse(json_str);
@@ -175,3 +176,5 @@ auto RedisSingleMotorController::measureAndStore() -> SingleMotorData {
     }
     return data[0];
 }
+
+} // exoskeleton::core

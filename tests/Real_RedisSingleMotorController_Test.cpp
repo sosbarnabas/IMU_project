@@ -23,14 +23,14 @@ int main(int argc, char *argv[]){
         redis.del("exit");
 
         threads.push_back(QThread::create([]() {
-            RedisBackbone main(1s / 120);
+            exoskeleton::core::RedisBackbone main(1s / 120);
             main();
         }));
 
         for (std::string port : ports ) {
             QThread* controller_thread =QThread::create([address, port, n_motors]() {
                 try {
-                  RedisSingleMotorController controller(address, port, n_motors);
+                  exoskeleton::core::RedisSingleMotorController controller(address, port, n_motors);
                   controller.loop();
                 } catch (std::exception const& e) {
                     std::cerr << address << " [ERROR] Exception: " << e.what() << std::endl;
