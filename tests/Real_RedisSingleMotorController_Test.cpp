@@ -13,10 +13,10 @@ int main(int argc, char *argv[]){
     try {
         using namespace std::chrono_literals;
         std::cout << "[DEBUG] Setting up real controller on actual motor port...\n";
-        std::vector<std::string> ports = {"COM16", "COM19", "COM5","COM3","COM17"};
+        std::vector<std::string> serial_numbers = {"CSTNY004", "CSTNY005", "CSTNY006","CSTNY007","CSTNY003"};
 
         std::vector<QThread*> threads;
-        int n_motors = ports.size();
+        int n_motors = serial_numbers.size();
         int address = 0;
 
         sw::redis::Redis redis("tcp://127.0.0.1:6379");
@@ -27,10 +27,10 @@ int main(int argc, char *argv[]){
             main();
         }));
 
-        for (std::string port : ports ) {
-            QThread* controller_thread =QThread::create([address, port, n_motors]() {
+        for (const std::string& sn : serial_numbers ) {
+            QThread* controller_thread =QThread::create([address, sn, n_motors]() {
                 try {
-                  exoskeleton::core::RedisSingleMotorController controller(address, port, n_motors);
+                  exoskeleton::core::RedisSingleMotorController controller(address, sn, n_motors);
                   controller.loop();
                 } catch (std::exception const& e) {
                     std::cerr << address << " [ERROR] Exception: " << e.what() << std::endl;

@@ -113,8 +113,8 @@ int MultiPortExoMotors::n_motors() const {
     return static_cast<int>(serials_.size());
 }
 
-MultiPortExoMotors::MultiPortExoMotors(const std::vector<std::string>& ports, double timeout_sec)
-    : weak_func(360), ports_(ports), timeout_ns_(static_cast<int64_t>(timeout_sec * 1e9)) {
+MultiPortExoMotors::MultiPortExoMotors(const std::vector<std::string>& serial_numbers, double timeout_sec)
+    : weak_func(360), serial_numbers_(serial_numbers), timeout_ns_(static_cast<int64_t>(timeout_sec * 1e9)) {
     weak_func.reserve(360);
     for (int i = 0; i < 360; ++i) weak_func[i] = 10 - (20 * i) / 359;
 }
@@ -127,9 +127,12 @@ SerialStatus MultiPortExoMotors::connect() {
         }
     }
     serials_.clear();
-    for (const auto& port : ports_) {
+    ports_.clear();
+    for (const auto& sn : serial_numbers_) {
         try {
+            const auto port = exoskeleton::motor::find_port_name_by_serial_num(sn);
             serials_.push_back(exoskeleton::motor::open_serial_port(port));
+            ports_.push_back(port);
         } catch (exoskeleton::motor::CannotOpenSerialPort const&) {
             last_connect_result_ = "CONNECT_OPEN_FAILED";
             throw;
@@ -153,6 +156,7 @@ SerialStatus MultiPortExoMotors::disconnect() {
         s->close();
     }
     serials_.clear();
+    ports_.clear();
     latest_full_read_.clear();
     last_connect_result_ = "DISCONNECTED";
     return status();

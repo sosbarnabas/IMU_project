@@ -18,8 +18,7 @@ SingleMotorData from_base(const exoskeleton::motor::SingleMotorData& base, uint6
 
 class MultiPortExoMotors : public ExoMotorsInterface {
 public:
-    MultiPortExoMotors(const std::vector<std::string>& ports, double timeout_sec = 3.0);
-
+    MultiPortExoMotors(const std::vector<std::string>& serial_numbers, double timeout_sec = 3.0);
 
     SerialStatus connect() override;
     SerialStatus disconnect() override;
@@ -43,6 +42,7 @@ public:
 private:
     std::vector<int> weak_func;
     std::vector<std::string> ports_;
+    std::vector<std::string> serial_numbers_;
     std::vector<std::unique_ptr<QSerialPort>> serials_;
     std::vector<SingleMotorData> prev_read_;
     std::vector<SingleMotorData> latest_full_read_;
