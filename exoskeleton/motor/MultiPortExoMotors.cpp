@@ -3,6 +3,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <thread>
+#include <iostream>
 
 using namespace exoskeleton::core;
 
@@ -123,34 +124,28 @@ MultiPortExoMotors::MultiPortExoMotors(const std::vector<std::string>& ports, do
 
 
 SerialStatus MultiPortExoMotors::connect() {
-    // TODO ne nyisd újra, ha már nyitva van
-    for (auto& s: serials_) {
+    for (auto s: serials_) {
         if (s->isOpen()) {
             s->close();
         }
+        delete s;
     }
     serials_.clear();
     for (const auto& port : ports_) {
-        QSerialPort* serial = new QSerialPort(QString::fromStdString((port)));
-        serial->setBaudRate(1000000);
-        serial->setDataBits(QSerialPort::Data8);
-        serial->setParity(QSerialPort::NoParity);
-        serial->setStopBits(QSerialPort::OneStop);
-
-        if (!serial->open(QIODevice::ReadWrite)) {
+        try {
+            serials_.push_back(exoskeleton::motor::open_serial_port(port));
+        } catch (exoskeleton::motor::CannotOpenSerialPort const&) {
             last_connect_result_ = "CONNECT_OPEN_FAILED";
-            std::cerr << "port hiba: " << port << std::endl;
-            throw std::runtime_error("Failed to open port: " + port);
+            throw;
         }
-        serials_.push_back(serial);
     }
-    for (auto& s : serials_) {
-        auto data = exoskeleton::motor::read_data(s, 10);
+    for (auto const s : serials_) {
+        auto const data = exoskeleton::motor::read_data(s, 10);
         if (!data.has_value()) {
             last_connect_result_ = "CONNECT_READ_FAILED";
             throw std::runtime_error("Initial read failed");
         }
-        auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+        auto const now = std::chrono::steady_clock::now().time_since_epoch().count();
         prev_read_.push_back(from_base(data, now, 0));
     }
     last_connect_result_ = "CONNECT_SUCCESS";
@@ -158,7 +153,10 @@ SerialStatus MultiPortExoMotors::connect() {
 }
 
 SerialStatus MultiPortExoMotors::disconnect() {
-    for (auto& s : serials_) s->close();
+    for (auto s : serials_) {
+        s->close();
+        delete s;
+    }
     serials_.clear();
     latest_full_read_.clear();
     last_connect_result_ = "DISCONNECTED";
@@ -167,7 +165,7 @@ SerialStatus MultiPortExoMotors::disconnect() {
 
 SerialStatus MultiPortExoMotors::status() const {
     bool connected = !serials_.empty();
-    for (const auto& s : serials_) {
+    for (const auto s : serials_) {
         if (!s->isOpen()) connected = false;
     }
     return SerialStatus{connected, join_ports()};

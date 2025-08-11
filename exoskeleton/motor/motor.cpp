@@ -1,8 +1,9 @@
+#include "motor.h"
+
 #include <iostream>
 #include <optional>
 #include <tuple>
 #include <stdexcept>
-#include <numeric>
 #include <algorithm>
 #include <QSerialPort>
 #include <QCoreApplication>
@@ -11,48 +12,36 @@
 #include <QtEndian>
 #include <thread>
 namespace exoskeleton::motor {
-    // Constants
-    constexpr uint8_t HEADER = 0x0A;
-    constexpr uint8_t ADDR = 0x00;  // address of module #1
 
-    constexpr uint8_t CMD_ENABLE = 0x01;
-    constexpr uint8_t CMD_DISABLE = 0x10;
-    constexpr uint8_t CMD_SET_ZERO = 0x02;
-    constexpr uint8_t CMD_SET_OFFSET = 0x20;
-    // constexpr uint8_t CMD_SET_FUNCTION = 0x03;
-    constexpr uint8_t CMD_SET_FUNC_AT_SLOT = 0x30;
-    constexpr uint8_t CMD_SELECT_SLOT = 0x04;
-
-    constexpr int32_t FULL_TURN = 32768;
-    constexpr int8_t TORQUE_MIN = -127;
-    constexpr int8_t TORQUE_MAX = 127;
-    constexpr size_t FUNCTION_LEN = 360;
 
     bool log_command = false;
 
-    using SingleMotorDataTuple = std::tuple<bool, int, int, int32_t, int8_t>;
-
-    struct SingleMotorData {
-        SingleMotorData() = default;
-        bool enabled;
-        int32_t slot_idx;
-        int32_t cmd_cntr;
-        int32_t position;
-        int32_t torque;
-
-        SingleMotorData(bool en, int32_t slot, int32_t cmd, int32_t pos, int32_t tq)
+    SingleMotorData::SingleMotorData(bool en, int32_t slot, int32_t cmd, int32_t pos, int32_t tq)
             : enabled(en), slot_idx(slot), cmd_cntr(cmd), position(pos), torque(tq) {}
 
-        SingleMotorDataTuple to_tuple() const {
-            return std::make_tuple(enabled, slot_idx, cmd_cntr, position, torque);
-        }
+    auto SingleMotorData::is_valid() const -> bool {
+        return !(slot_idx == 0 && cmd_cntr == 0 && position == 0 && torque == 0 && !enabled);
+    }
 
-        friend std::ostream& operator<<(std::ostream &os, const SingleMotorData& data);
+    auto SingleMotorData::value() const -> SingleMotorData const& {
+        return *this;
+    }
 
-        bool is_valid() const {
-            return !(slot_idx == 0 && cmd_cntr == 0 && position == 0 && torque == 0 && !enabled);
-        }
-    };
+    auto SingleMotorData::to_tuple() const -> SingleMotorDataTuple {
+        return std::make_tuple(enabled, slot_idx, cmd_cntr, position, torque);
+    }
+
+    auto SingleMotorData::empty() -> SingleMotorData {
+        return SingleMotorData{false, 0, 0, 0, 0};
+    }
+
+    auto SingleMotorData::has_value() const -> bool {
+        return enabled ||
+               slot_idx != 0 ||
+               cmd_cntr != 0 ||
+               position != 0 ||
+               torque != 0;
+    }
 
     std::ostream& operator<<(std::ostream& os, const SingleMotorData& data){
         os << "enabled: " << data.enabled << " slot_idx: " << data.slot_idx << " cmd_cntr: " << data.cmd_cntr << " pos: " << data.position << " torq: " << data.torque;
@@ -68,7 +57,31 @@ namespace exoskeleton::motor {
         return "";
     }
 
-    QSerialPort* open_serial(int baudrate = 1000000) {
+    auto find_port_name_by_serial_num(std::string const& sn) -> std::string {
+        for (const QSerialPortInfo &port : QSerialPortInfo::availablePorts()) {
+            if (port.serialNumber() == sn) {
+                return port.portName().toStdString();
+            }
+        }
+        throw SerialNumberNotFound{sn};
+    }
+
+    auto open_serial_port(std::string const& name) -> QSerialPort* {
+        auto ser = new QSerialPort{QString::fromStdString(name)};
+
+        if (!ser->open(QIODevice::ReadWrite)) {
+            throw CannotOpenSerialPort{name};
+        }
+
+        ser->setBaudRate(1'000'000);
+        ser->setDataBits(QSerialPort::Data8);
+        ser->setParity(QSerialPort::NoParity);
+        ser->setStopBits(QSerialPort::OneStop);
+
+        return ser;
+    }
+
+    QSerialPort* open_serial(int baudrate) {
         std::string usb_com_port = find_cstny_usb_com_port();
         if (usb_com_port.empty()) {
             throw std::runtime_error("Cannot find COM port");
@@ -99,7 +112,7 @@ namespace exoskeleton::motor {
         return sum & 0xFF;//std::accumulate(data.begin(), data.end() - 1, int{0}) & 0xFF;
     }
 
-    SingleMotorData read_data(QSerialPort* serial, int max_tries = 10) {
+    SingleMotorData read_data(QSerialPort* serial, int max_tries) {
         //serial->waitForReadyRead(100);
 
         QByteArray buffer;
@@ -164,19 +177,19 @@ namespace exoskeleton::motor {
         }
     }
 
-    void motor_set_zero(QSerialPort* ser, int addr = ADDR) {
+    void motor_set_zero(QSerialPort* ser, int addr) {
         send(ser, CMD_SET_ZERO, {}, addr);
     }
 
-    void motor_enable(QSerialPort* ser, int addr = ADDR) {
+    void motor_enable(QSerialPort* ser, int addr) {
         send(ser, CMD_ENABLE, {}, addr);
     }
 
-    void motor_disable(QSerialPort* ser, int addr = ADDR) {
+    void motor_disable(QSerialPort* ser, int addr) {
         send(ser, CMD_DISABLE, {}, addr);
     }
 
-    void motor_set_offset(QSerialPort* ser, int value, int addr = ADDR) {
+    void motor_set_offset(QSerialPort* ser, int value, int addr) {
         QByteArray offset;
         QDataStream stream(&offset, QIODevice::WriteOnly);
         stream.setByteOrder(QDataStream::BigEndian);

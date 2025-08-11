@@ -12,33 +12,38 @@ int main(int argc, char *argv[]){
 
     try {
         using namespace std::chrono_literals;
-          std::cout << "[DEBUG] Setting up real controller on actual motor port...\n";
-          std::vector<std::string> ports = {"COM16", "COM19", "COM5","COM3","COM17"};
+        std::cout << "[DEBUG] Setting up real controller on actual motor port...\n";
+        std::vector<std::string> ports = {"COM16", "COM19", "COM5","COM3","COM17"};
 
-          std::vector<QThread*> threads;
-          int n_motors = ports.size();
-          int address = 0;
+        std::vector<QThread*> threads;
+        int n_motors = ports.size();
+        int address = 0;
 
         sw::redis::Redis redis("tcp://127.0.0.1:6379");
         redis.del("exit");
 
         threads.push_back(QThread::create([]() {
-                  RedisBackbone main(1s / 120);
-                  main();
-              }));
+            RedisBackbone main(1s / 120);
+            main();
+        }));
 
-          for (std::string port : ports ) {
-              QThread* controller_thread =QThread::create([address,port,n_motors]() {
-                  RedisSingleMotorController controller(address, port,n_motors);
+        for (std::string port : ports ) {
+            QThread* controller_thread =QThread::create([address, port, n_motors]() {
+                try {
+                  RedisSingleMotorController controller(address, port, n_motors);
                   controller.loop();
-              });
-              threads.push_back(controller_thread);
-              address++;
-          }
-          for (QThread* thread : threads) {
-              thread->start();
-          }
-
+                } catch (std::exception const& e) {
+                    std::cerr << address << " [ERROR] Exception: " << e.what() << std::endl;
+                } catch (...) {
+                    std::cerr << address << " [ERROR] Exception" << std::endl;
+                }
+            });
+            threads.push_back(controller_thread);
+            address++;
+        }
+        for (QThread* thread : threads) {
+            thread->start();
+        }
     }
     catch (const std::exception &e) {
         std::cerr << "[ERROR] Exception: " << e.what() << std::endl;
@@ -46,5 +51,5 @@ int main(int argc, char *argv[]){
     }
 
     return app.exec();
-   // return 0;
+    // return 0;
 }

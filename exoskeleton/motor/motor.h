@@ -1,21 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
-#include <optional>
 #include <tuple>
 #include <stdexcept>
-#include <numeric>
-#include <algorithm>
 #include <vector>
 #include <string>
-
 #include <QSerialPort>
-#include <QSerialPortInfo>
-#include <QByteArray>
-#include <QDataStream>
-#include <QIODevice>
-#include <QtEndian>
 #include <QDebug>
 
 namespace exoskeleton::motor {
@@ -37,6 +27,13 @@ constexpr size_t FUNCTION_LEN = 360;
 
 extern bool log_command;
 
+class SerialNumberNotFound : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+class CannotOpenSerialPort : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
 using SingleMotorDataTuple = std::tuple<bool, int, int, int32_t, int8_t>;
 
 struct SingleMotorData {
@@ -47,28 +44,24 @@ struct SingleMotorData {
     int32_t torque;
 
     SingleMotorData(bool en, int32_t slot, int32_t cmd, int32_t pos, int32_t tq);
-    SingleMotorDataTuple to_tuple() const;
 
-    static SingleMotorData empty() {
-        return SingleMotorData{false, 0, 0, 0, 0};
-    }
+    [[nodiscard]] auto to_tuple() const -> SingleMotorDataTuple;
 
-    const SingleMotorData& value() const {
-        return *this;
-    }
+    [[nodiscard]] static auto empty() -> SingleMotorData;
 
-    bool has_value() const {
-        return enabled ||
-               slot_idx != 0 ||
-               cmd_cntr != 0 ||
-               position != 0 ||
-               torque != 0;
-    }
+    [[nodiscard]] auto value() const -> const SingleMotorData&;
+
+    [[nodiscard]] auto is_valid() const -> bool;
+
+    [[nodiscard]] auto has_value() const -> bool;
 
     friend std::ostream& operator<<(std::ostream &os, const SingleMotorData& data);
 };
 
 std::string find_cstny_usb_com_port();
+[[nodiscard]] auto find_port_name_by_serial_num(std::string const& sn) -> std::string;
+
+[[nodiscard]] auto open_serial_port(std::string const& name) -> QSerialPort*;
 QSerialPort* open_serial(int baudrate = 1000000);
 
 int8_t calculateChecksum(const QByteArray &data);

@@ -48,26 +48,32 @@ void RedisSingleMotorController::loop() {
     });
 
     while (true) {
-        if (auto const exit_flag = redis_.get("exit");
-            exit_flag && *exit_flag == "1") {
-            motor_.disable(0);  // TODO emergency_stop
-            std::cout << "Exited by \"exit\" command" << std::endl;
-            break;
-        }
+        try {
+            if (auto const exit_flag = redis_.get("exit");
+                exit_flag && *exit_flag == "1") {
+                motor_.disable(0);  // TODO emergency_stop
+                std::cout << "Exited by \"exit\" command" << std::endl;
+                break;
+                }
 
-        if (auto const stop_flag = redis_.getset("stop:" + std::to_string(address_), "0");
-            stop_flag && *stop_flag == "1") {
-            std::cout << "stop" << std::endl;
-            auto const data = motor_.disable(0);  // TODO emergency_stop
-            exoskeleton::redis_tools::send_ok(
-                redis_,
-                COMMAND_RESULT_KEY
-                + ":stop:" + std::to_string(address_),
-                data.to_string()
-            );
-            continue;
+            if (auto const stop_flag = redis_.getset("stop:" + std::to_string(address_), "0");
+                stop_flag && *stop_flag == "1") {
+                std::cout << "stop" << std::endl;
+                auto const data = motor_.disable(0);  // TODO emergency_stop
+                exoskeleton::redis_tools::send_ok(
+                    redis_,
+                    COMMAND_RESULT_KEY
+                    + ":stop:" + std::to_string(address_),
+                    data.to_string()
+                );
+                continue;
+                }
+            subscriber.consume();  // ez figyeli az üzeneteket
+        } catch (std::exception const& e) {
+            std::cerr << e.what() << '\n';
+        } catch (...) {
+            std::cerr << "Unknown exception at " << __func__ << "\n";
         }
-        subscriber.consume();  // ez figyeli az üzeneteket
     }
 }
 
