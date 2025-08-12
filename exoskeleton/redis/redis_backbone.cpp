@@ -4,7 +4,7 @@
 namespace exoskeleton::core {
 
 RedisBackbone::RedisBackbone(
-    std::chrono::seconds const& dt,
+    std::chrono::nanoseconds const& dt,
     std::string const& redis_url
     ) : redis_{redis_url}, dt_{dt} {}
 

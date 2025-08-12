@@ -25,7 +25,7 @@ namespace exoskeleton::core{
                std::to_string(n_tries);
     }
 
-    bool SingleMotorData::is_valid() {
+    bool SingleMotorData::is_valid() const {
             return !(slot_idx == 0 && cmd_cntr == 0 && position == 0 && torque == 0 && !enabled);
 
     }

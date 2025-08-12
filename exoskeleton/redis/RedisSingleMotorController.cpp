@@ -9,25 +9,6 @@
 
 namespace exoskeleton::core {
 
-// Redis key constants
-static const std::string STARTED_KEY = "started";
-static const std::string SYNC_KEY = "sync:loop:next";
-static const std::string STOP_KEY = "stop";
-static const std::string COMMAND_KEY = "command";
-static const std::string COMMAND_RESULT_KEY = "commandres";
-static const std::string COMMAND_PARTIAL_RESULT_KEY = "commandrespart";
-static const std::string EXIT_KEY = "exit";
-
-std::vector<int> parseJsonArray(const std::string& json_str) {
-    auto j = nlohmann::json::parse(json_str);
-    std::vector<int> result;
-
-    for (const auto& el : j) {
-        result.push_back(el.get<int>());
-    }
-    return result;
-}
-
 void RedisSingleMotorController::loop() {
     motor_.connect();
 
@@ -63,7 +44,7 @@ void RedisSingleMotorController::loop() {
                 auto const data = motor_.disable(0);  // TODO emergency_stop
                 exoskeleton::redis_tools::send_ok(
                     redis_,
-                    COMMAND_RESULT_KEY
+                    redis_tools::COMMAND_RESULT_KEY
                     + ":stop:" + std::to_string(address_),
                     data.to_string()
                 );
@@ -94,7 +75,7 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
 
     std::cerr << t << " " << c << " " << idx << std::endl;
 
-    std::string key{partial ? COMMAND_PARTIAL_RESULT_KEY : COMMAND_RESULT_KEY};
+    std::string key{partial ? redis_tools::COMMAND_PARTIAL_RESULT_KEY : redis_tools::COMMAND_RESULT_KEY};
     key += ":";
     key += c;
     key += ":";
@@ -132,7 +113,7 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
                 throw std::runtime_error("Missing value for fn_upload");
             }
             std::string const& json_str = parts[3];
-            if (auto values = parseJsonArray(json_str); !values.empty()) {
+            if (auto values = redis_tools::parseJsonArray(json_str); !values.empty()) {
                 int slot = values.front();
                 values.erase(values.begin());
 
@@ -151,12 +132,13 @@ void RedisSingleMotorController::processCommand(const std::string &raw_command) 
         }
         else if (c == "function") {
             std::string const& json_str = parts[3];
-            if (auto values = parseJsonArray(json_str); !values.empty()) {
+            if (auto values = redis_tools::parseJsonArray(json_str); !values.empty()) {
                 auto const record = motor_.set_function(0,values,7);
                 response = record.to_string();
             }
         }
         // TODO offset
+        // TODO fn_get
         else {
             std::cerr << "Unknown command: " << c << std::endl;
         }

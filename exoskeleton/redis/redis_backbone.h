@@ -9,7 +9,7 @@ namespace exoskeleton::core {
 class RedisBackbone {
 public:
     RedisBackbone(
-        std::chrono::seconds const& dt,
+        std::chrono::nanoseconds const& dt,
         std::string const& redis_url = "tcp://127.0.0.1:6379"
         );
 
@@ -18,7 +18,7 @@ public:
 
 private:
     sw::redis::Redis redis_;
-    std::chrono::seconds dt_;
+    std::chrono::nanoseconds dt_;
 };
 
 } // exoskeleton::core

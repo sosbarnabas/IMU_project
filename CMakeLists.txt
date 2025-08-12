@@ -39,6 +39,7 @@ add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
         exoskeleton/motor/ExoMotorsInterface.cpp
         exoskeleton/motor/SinglePortExoMotor.cpp
         exoskeleton/redis/RedisSinglePortController.cpp
+        exoskeleton/redis/redis_backbone.cpp
 )
 
 add_executable(READTEST tests/read_test.cpp
