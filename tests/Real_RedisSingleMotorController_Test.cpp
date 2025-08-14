@@ -1,6 +1,6 @@
 // test_RedisSingleMotorController.cpp
-#include "../exoskeleton/redis/RedisSingleMotorController.h"
-#include "../exoskeleton/redis/redis_backbone.h"
+#include "../exoskeleton/multiport/RedisSingleMotorController.h"
+#include "../exoskeleton/core/redis_backbone.h"
 #include <sw/redis++/redis++.h>
 #include <iostream>
 #include <thread>

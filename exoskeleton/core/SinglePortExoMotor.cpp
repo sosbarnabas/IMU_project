@@ -1,5 +1,5 @@
 #include "SinglePortExoMotor.h"
-#include "MultiPortExoMotors.h"
+#include "../multiport/MultiPortExoMotors.h"
 #include <stdexcept>
 
 namespace exoskeleton::core {

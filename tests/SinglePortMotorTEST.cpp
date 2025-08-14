@@ -1,5 +1,5 @@
-#include "../exoskeleton/redis/RedisSinglePortController.h"
-#include "../exoskeleton/redis/redis_backbone.h"
+#include "../exoskeleton/core/RedisSinglePortController.h"
+#include "../exoskeleton/core/redis_backbone.h"
 #include <sw/redis++/redis++.h>
 #include <iostream>
 #include <chrono>

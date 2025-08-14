@@ -2,11 +2,12 @@
 // Created by robotlab on 27/05/2025.
 //
 #include <iostream>
-#include "E:/Samu/repo/exo-cpp-orbsa/exoskeleton/motor/motor.h"
+#include "../exoskeleton/motor/motor.h"
 #include <QCoreApplication>
 #include <iostream>
 #include <string>
 #include <QSerialPort>
+#include <QSerialPortInfo>
 #include <stdexcept>
 #include <thread>
 #include <chrono>

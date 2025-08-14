@@ -1,26 +1,20 @@
-#include "RedisSinglePortController.h"
-#include "RedisTools.h"
+#include "RedisSingleMotorController.h"
+#include "../core/RedisTools.h"
 #include <sw/redis++/redis++.h>
 #include <chrono>
 #include <sstream>
 #include <vector>
 #include <iostream>
+#include <nlohmann/json.hpp>
 
 namespace exoskeleton::core {
 
-RedisSinglePortController::RedisSinglePortController(const int address, const std::string& serial_num, int n_motors)
-    : address_{address}
-    , redis_{"tcp://127.0.0.1:6379"}
-    , motor_{serial_num}
-    , n_motors_{n_motors}
-    {}
-
-void RedisSinglePortController::loop() {
+void RedisSingleMotorController::loop() {
     motor_.connect();
 
     auto subscriber = exoskeleton::redis_tools::make_keyspace_subscriber(redis_,"sync:loop:next");
 
-    subscriber.on_message([this](const std::string& channel, const std::string& msg) {
+    subscriber.on_message([this](std::string channel, std::string msg) {
        // std::cout << "[DEBUG] sync:loop:next triggerelt: " << msg << std::endl;
         if (msg != "set") return;
 
@@ -39,7 +33,7 @@ void RedisSinglePortController::loop() {
         try {
             if (auto const exit_flag = redis_.get("exit");
                 exit_flag && *exit_flag == "1") {
-                motor_.disable();  // TODO emergency_stop
+                motor_.disable(0);  // TODO emergency_stop
                 std::cout << "Exited by \"exit\" command" << std::endl;
                 break;
                 }
@@ -47,7 +41,7 @@ void RedisSinglePortController::loop() {
             if (auto const stop_flag = redis_.getset("stop:" + std::to_string(address_), "0");
                 stop_flag && *stop_flag == "1") {
                 std::cout << "stop" << std::endl;
-                auto const data = motor_.disable();  // TODO emergency_stop
+                auto const data = motor_.disable(0);  // TODO emergency_stop
                 exoskeleton::redis_tools::send_ok(
                     redis_,
                     redis_tools::COMMAND_RESULT_KEY
@@ -65,7 +59,7 @@ void RedisSinglePortController::loop() {
     }
 }
 
-void RedisSinglePortController::processCommand(const std::string &raw_command) {
+void RedisSingleMotorController::processCommand(const std::string &raw_command) {
     std::vector<std::string> parts;
     std::stringstream ss(raw_command);
     std::string tok;
@@ -103,11 +97,11 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
             response = record.to_string();
         }
         else if (c == "enable") {
-            auto const record = motor_.enable();
+            auto const record = motor_.enable(0);
             response = record.to_string();
         }
         else if (c == "disable") {
-            auto const record = motor_.disable();
+            auto const record = motor_.disable(0);
             response = record.to_string();
         }
         else if (c == "read") {
@@ -123,23 +117,23 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
                 int slot = values.front();
                 values.erase(values.begin());
 
-                auto record = motor_.upload_function(slot, values);
+                auto record = motor_.upload_function(0,slot,values);
                 response = record.to_string();
             }
         }
         else if (c=="fn_select") {
             int slot = std::stoi(parts[3]);
-            auto const record = motor_.select_function(slot);
+            auto const record = motor_.select_function(0,slot);
             response = record.to_string();
         }
         else if (c == "zero") {
-            auto const record = motor_.set_zero();
+            auto const record = motor_.set_zero(0);
             response = record.to_string();
         }
         else if (c == "function") {
             std::string const& json_str = parts[3];
             if (auto values = redis_tools::parseJsonArray(json_str); !values.empty()) {
-                auto const record = motor_.set_function(values, 7);
+                auto const record = motor_.set_function(0,values,7);
                 response = record.to_string();
             }
         }
@@ -157,12 +151,12 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
     }
 }
 
-auto RedisSinglePortController::measureAndStore() -> SingleMotorData {
+auto RedisSingleMotorController::measureAndStore() -> SingleMotorData {
     auto const data = motor_.read();
-    if (data.is_valid()) {
-        exoskeleton::redis_tools::xadd_motor_data(redis_, address_, data);
+    if (!data.empty()) {
+        exoskeleton::redis_tools::xadd_motor_data(redis_, address_, data[0]);
     }
-    return data;
+    return data[0];
 }
 
 } // exoskeleton::core

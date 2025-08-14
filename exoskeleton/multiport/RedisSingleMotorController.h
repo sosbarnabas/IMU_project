@@ -1,8 +1,8 @@
 #pragma once
 
 #include <sw/redis++/redis++.h>
-#include "../motor/MultiPortExoMotors.h"
-#include "RedisTools.h"
+#include "../multiport/MultiPortExoMotors.h"
+#include "../core/RedisTools.h"
 
 namespace exoskeleton::core {
 

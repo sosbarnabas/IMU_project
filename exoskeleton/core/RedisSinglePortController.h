@@ -2,7 +2,7 @@
 
 #include <string>
 #include <sw/redis++/redis++.h>
-#include "../motor/SinglePortExoMotor.h"
+#include "../core/SinglePortExoMotor.h"
 
 namespace exoskeleton::core {
 

@@ -9,8 +9,8 @@
 #include <functional>
 #include <QSerialPort>
 
-#include "motor.h"
-#include "ExoMotorsInterface.h"
+#include "../motor/motor.h"
+#include "../motor/ExoMotorsInterface.h"
 
 namespace exoskeleton::core {
 

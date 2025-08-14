@@ -17,29 +17,29 @@ add_executable(redistest demo/redis/redistest.cpp)
 #add_executable(REDIS_TEST ${PARENT_DIR}/exoskeleton-core-cpp/tests/redis_test.cpp
 add_executable(REDIS_TEST tests/Real_RedisSingleMotorController_Test.cpp
         #tests/redis_test.cpp
-        exoskeleton/redis/RedisFacade.cpp
+        exoskeleton/core/RedisFacade.cpp
         exoskeleton/settings/Settings.cpp
         exoskeleton/settings/UserParams.cpp
-        exoskeleton/redis/RedisTools.cpp
-        exoskeleton/redis/RedisSingleMotorController.cpp
+        exoskeleton/core/RedisTools.cpp
+        exoskeleton/multiport/RedisSingleMotorController.cpp
         exoskeleton/motor/motor.cpp
-        exoskeleton/motor/MultiPortExoMotors.cpp
+        exoskeleton/multiport/MultiPortExoMotors.cpp
         exoskeleton/motor/ExoMotorsInterface.cpp
-        exoskeleton/redis/redis_backbone.cpp
+        exoskeleton/core/redis_backbone.cpp
 )
 
 add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
-        exoskeleton/redis/RedisFacade.cpp
+        exoskeleton/core/RedisFacade.cpp
         exoskeleton/settings/Settings.cpp
         exoskeleton/settings/UserParams.cpp
-        exoskeleton/redis/RedisTools.cpp
-        exoskeleton/redis/RedisSingleMotorController.cpp
+        exoskeleton/core/RedisTools.cpp
+        exoskeleton/multiport/RedisSingleMotorController.cpp
         exoskeleton/motor/motor.cpp
-        exoskeleton/motor/MultiPortExoMotors.cpp
+        exoskeleton/multiport/MultiPortExoMotors.cpp
         exoskeleton/motor/ExoMotorsInterface.cpp
-        exoskeleton/motor/SinglePortExoMotor.cpp
-        exoskeleton/redis/RedisSinglePortController.cpp
-        exoskeleton/redis/redis_backbone.cpp
+        exoskeleton/core/SinglePortExoMotor.cpp
+        exoskeleton/core/RedisSinglePortController.cpp
+        exoskeleton/core/redis_backbone.cpp
 )
 
 add_executable(READTEST tests/read_test.cpp
