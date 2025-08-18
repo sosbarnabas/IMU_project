@@ -20,6 +20,8 @@ SerialStatus SinglePortExoMotor::connect() {
         throw;
     }
 
+    clear_functions();
+
     const auto data = exoskeleton::motor::read_data(*serial_, 10);
     if (!data.has_value()) {
         last_connect_result_ = "CONNECT_READ_FAILED";
@@ -34,6 +36,7 @@ SerialStatus SinglePortExoMotor::connect() {
 
 SerialStatus SinglePortExoMotor::disconnect() {
     if (serial_) {
+        // motor::motor_clear_functions(*serial_);  // TODO "Nem sikerült az összes bájt elküldése" hiba
         serial_->close();
     }
     serial_.reset();
@@ -136,7 +139,10 @@ SingleMotorData SinglePortExoMotor::upload_function(int slot, const std::vector<
         if (data.has_value()) {
             auto prev_cntr = prev_read_.cmd_cntr;
             prev_read_ = from_base(data, std::chrono::steady_clock::now().time_since_epoch().count(), n_tries);
-            if (prev_cntr != data.cmd_cntr) return prev_read_;
+            if (prev_cntr != data.cmd_cntr) {
+                last_uploaded_functions_[slot] = function;
+                return prev_read_;
+            }
         }
         if (std::chrono::steady_clock::now() - t0 > std::chrono::nanoseconds(timeout_ns_)) {
             throw std::runtime_error("Timeout in upload_function");
@@ -153,6 +159,18 @@ SingleMotorData SinglePortExoMotor::select_function(int slot) {
 SingleMotorData SinglePortExoMotor::set_function(const std::vector<int>& function, int slot) {
     upload_function(slot, function);
     return select_function(slot);
+}
+
+SingleMotorData SinglePortExoMotor::clear_functions() {
+    SingleMotorData res;
+    for (size_t slot = 0; slot < motor::n_slots; ++slot) {
+        res = upload_function(slot, motor::zero_function);
+    }
+    return res;
+}
+
+auto SinglePortExoMotor::get_functions() const -> std::map<int, std::vector<int>> {
+    return last_uploaded_functions_;
 }
 
 SingleMotorData SinglePortExoMotor::read(int max_tries) {

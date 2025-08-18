@@ -33,6 +33,8 @@ public:
     SingleMotorData upload_function(int slot, const std::vector<int>& function);
     SingleMotorData select_function(int slot);
     SingleMotorData set_function(const std::vector<int>& function, int slot = 7);
+    SingleMotorData clear_functions();
+    [[nodiscard]] auto get_functions() const -> std::map<int, std::vector<int>>;
 
     // Olvasás
     [[nodiscard]] SingleMotorData read(int max_tries = 3);
@@ -45,6 +47,7 @@ private:
     SingleMotorData prev_read_;
     int64_t timeout_ns_;
     std::string last_connect_result_ = "NOT_CONNECTED";
+    std::map<int, std::vector<int>> last_uploaded_functions_;
 
     void require_serial() const;
 

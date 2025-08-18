@@ -26,6 +26,10 @@ constexpr int8_t TORQUE_MIN = -127;
 constexpr int8_t TORQUE_MAX = 127;
 constexpr size_t FUNCTION_LEN = 360;
 
+constexpr size_t n_slots = 8;
+
+inline const std::vector<int> zero_function (FUNCTION_LEN);
+
 inline bool log_command = false;
 
 class SerialNumberNotFound : public std::runtime_error {

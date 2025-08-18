@@ -124,7 +124,6 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
                 values.erase(values.begin());
 
                 auto record = motor_.upload_function(slot, values);
-                last_uploaded_functions_[slot] = values;
                 response = record.to_string();
             }
         }
@@ -146,14 +145,13 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
             std::string const& json_str = parts[3];
             if (auto values = redis_tools::parseJsonArray(json_str); !values.empty()) {
                 auto const record = motor_.set_function(values, 7);
-                last_uploaded_functions_[7] = values;
                 response = record.to_string();
             }
         }
         else if (c == "fn_get") {
             response = "";
             bool first = true;
-            for (const auto& [slot, fn] : last_uploaded_functions_) {
+            for (const auto& [slot, fn] : motor_.get_functions()) {
                 if (first) {
                     first = false;
                 } else {
