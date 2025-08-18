@@ -1,4 +1,5 @@
 #include "../exoskeleton/core/RedisSinglePortController.h"
+#include "../exoskeleton/core/RedisFacade.h"
 #include "../exoskeleton/core/redis_backbone.h"
 #include <sw/redis++/redis++.h>
 #include <iostream>
@@ -9,32 +10,40 @@
 int main(int argc, char *argv[]){
     QCoreApplication app(argc, argv);
 
+    std::vector<QThread*> threads;
     try {
         using namespace std::chrono_literals;
         std::cout << "[DEBUG] Setting up real controller on actual motor port...\n";
-        std::vector<std::string> serial_numbers = {"CSTNY004", "CSTNY005", "CSTNY006","CSTNY007","CSTNY003"};
 
-        std::vector<QThread*> threads;
-        int n_motors = serial_numbers.size();
-        int address = 0;
-
-        sw::redis::Redis redis("tcp://127.0.0.1:6379");
+        const auto uri = "tcp://127.0.0.1:6379";
+        sw::redis::Redis redis(uri);
         redis.del("exit");
+
+        auto redis_facade = exoskeleton::redis::Facade{uri};
+        const auto settings = redis_facade.load_env(true);
+
+        const auto motor_props = settings.motor_props();
+        int n_motors = motor_props.size();
+        for (const auto& [name, sn, a] : motor_props) {
+            std::cout << "[INFO] " << name << " (" << sn  << ", " << a << ")" << std::endl;
+        }
+
+        int address = 0;
 
         threads.push_back(QThread::create([]() {
             exoskeleton::core::RedisBackbone main(4ms);
             main();
         }));
 
-        for (const std::string& sn : serial_numbers ) {
-            QThread* controller_thread =QThread::create([address, sn, n_motors]() {
+        for (const auto& props : motor_props) {
+            QThread* controller_thread =QThread::create([props, n_motors]() {
                 try {
-                  exoskeleton::core::RedisSinglePortController controller(address, sn, n_motors);
+                  exoskeleton::core::RedisSinglePortController controller(props, n_motors);
                   controller.loop();
                 } catch (std::exception const& e) {
-                    std::cerr << address << " [ERROR] Exception: " << e.what() << std::endl;
+                    std::cerr << props.name << " [ERROR] Exception: " << e.what() << std::endl;
                 } catch (...) {
-                    std::cerr << address << " [ERROR] Exception" << std::endl;
+                    std::cerr << props.name << " [ERROR] Exception" << std::endl;
                 }
             });
             threads.push_back(controller_thread);
@@ -43,8 +52,7 @@ int main(int argc, char *argv[]){
         for (QThread* thread : threads) {
             thread->start();
         }
-    }
-    catch (const std::exception &e) {
+    } catch (const std::exception &e) {
         std::cerr << "[ERROR] Exception: " << e.what() << std::endl;
         return 1;
     }

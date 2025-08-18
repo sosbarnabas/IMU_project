@@ -6,6 +6,14 @@
 
 namespace exoskeleton::settings {
 
+struct MotorProps {
+    std::string name;
+    std::string serial_number;
+    int address;
+
+    MotorProps (const std::string&, const std::string&, int);
+};
+
 class Settings {
 public:
     std::string motor_e_flex;
@@ -24,7 +32,9 @@ public:
     static Settings from_map(const std::unordered_map<std::string,std::string> &m);
 
     // Helper to get motor IDs
-    std::vector<std::string> motor_ids() const;
+    [[nodiscard]] auto motor_ids() const -> std::vector<std::string>;
+
+    [[nodiscard]] auto motor_props() const -> std::vector<MotorProps>;
 };
 
 }

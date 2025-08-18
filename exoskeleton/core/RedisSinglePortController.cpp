@@ -8,10 +8,10 @@
 
 namespace exoskeleton::core {
 
-RedisSinglePortController::RedisSinglePortController(const int address, const std::string& serial_num, int n_motors)
-    : address_{address}
+RedisSinglePortController::RedisSinglePortController(const settings::MotorProps& motor_props, size_t n_motors)
+    : motor_props_{motor_props}
     , redis_{"tcp://127.0.0.1:6379"}
-    , motor_{serial_num}
+    , motor_{motor_props.serial_number}
     , n_motors_{n_motors}
     {}
 
@@ -24,7 +24,7 @@ void RedisSinglePortController::loop() {
        // std::cout << "[DEBUG] sync:loop:next triggerelt: " << msg << std::endl;
         if (msg != "set") return;
 
-        auto raw_command = redis_.rpop("command:" + std::to_string(address_));
+        auto raw_command = redis_.rpop("command:" + std::to_string(motor_props_.address));
 
         if (raw_command) {
             processCommand(*raw_command);
@@ -44,14 +44,14 @@ void RedisSinglePortController::loop() {
                 break;
                 }
 
-            if (auto const stop_flag = redis_.getset("stop:" + std::to_string(address_), "0");
+            if (auto const stop_flag = redis_.getset("stop:" + std::to_string(motor_props_.address), "0");
                 stop_flag && *stop_flag == "1") {
                 std::cout << "stop" << std::endl;
                 auto const data = motor_.disable();  // TODO emergency_stop
                 exoskeleton::redis_tools::send_ok(
                     redis_,
                     redis_tools::COMMAND_RESULT_KEY
-                    + ":stop:" + std::to_string(address_),
+                    + ":stop:" + std::to_string(motor_props_.address),
                     data.to_string()
                 );
                 continue;
@@ -85,7 +85,7 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
     key += ":";
     key += c;
     key += ":";
-    key += std::to_string(address_);
+    key += std::to_string(motor_props_.address);
     key += ":";
     key += t;
     try {
@@ -160,7 +160,7 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
 auto RedisSinglePortController::measureAndStore() -> SingleMotorData {
     auto const data = motor_.read();
     if (data.is_valid()) {
-        exoskeleton::redis_tools::xadd_motor_data(redis_, address_, data);
+        exoskeleton::redis_tools::xadd_motor_data(redis_, motor_props_.address, data);
     }
     return data;
 }

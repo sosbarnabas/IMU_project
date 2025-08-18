@@ -17,6 +17,11 @@ namespace exoskeleton::redis_tools {
         return result;
     }
 
+    auto jsonArray(const std::vector<int>& array) -> std::string {
+        nlohmann::json out = array;
+        return out.dump();
+    }
+
     std::unordered_map<std::string, std::string>
     hgetall_map(sw::redis::Redis &redis, const std::string &key) {
         std::unordered_map<std::string, std::string> result;
