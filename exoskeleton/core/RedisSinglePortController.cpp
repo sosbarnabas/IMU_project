@@ -124,6 +124,7 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
                 values.erase(values.begin());
 
                 auto record = motor_.upload_function(slot, values);
+                last_uploaded_functions_[slot] = values;
                 response = record.to_string();
             }
         }
@@ -136,16 +137,33 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
             auto const record = motor_.set_zero();
             response = record.to_string();
         }
+        else if (c == "offset") {
+            int value = std::stoi(parts[3]);
+            auto const record = motor_.set_offset(value);
+            response = record.to_string();
+        }
         else if (c == "function") {
             std::string const& json_str = parts[3];
             if (auto values = redis_tools::parseJsonArray(json_str); !values.empty()) {
                 auto const record = motor_.set_function(values, 7);
+                last_uploaded_functions_[7] = values;
                 response = record.to_string();
             }
         }
-        // TODO offset
-        // TODO fn_get
-        else {
+        else if (c == "fn_get") {
+            response = "";
+            bool first = true;
+            for (const auto& [slot, fn] : last_uploaded_functions_) {
+                if (first) {
+                    first = false;
+                } else {
+                    response += "|";
+                }
+                auto values = decltype(fn){{slot}};
+                values.insert(values.end(), fn.begin(), fn.end());
+                response += redis_tools::jsonArray(values);
+            }
+        } else {
             std::cerr << "Unknown command: " << c << std::endl;
         }
 

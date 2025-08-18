@@ -18,8 +18,8 @@ private:
     settings::MotorProps motor_props_;
     sw::redis::Redis redis_;
     SinglePortExoMotor motor_;
-    int n_motors_;
     size_t n_motors_;
+    std::map<int, std::vector<int>> last_uploaded_functions_;
 
     void processCommand(const std::string& raw_command);
     auto measureAndStore() -> SingleMotorData;
