@@ -21,7 +21,7 @@ int main(int argc, char *argv[]){
 
 
     std::vector<std::string> ports = {"COM3"};
-    MultiPortExoMotors controller(ports, 3.0);
+    exoskeleton::core::MultiPortExoMotors controller(ports, 3.0);
     controller.connect();
     controller.raw_enable(0);
 

@@ -9,17 +9,16 @@
 #include <functional>
 #include <QSerialPort>
 
-#include "motor.h"
-#include "ExoMotorsInterface.h"
+#include "../motor/motor.h"
+#include "../motor/ExoMotorsInterface.h"
 
-using namespace exoskeleton::core;
+namespace exoskeleton::core {
 
 SingleMotorData from_base(const exoskeleton::motor::SingleMotorData& base, uint64_t t, int tries);
 
 class MultiPortExoMotors : public ExoMotorsInterface {
 public:
-    MultiPortExoMotors(const std::vector<std::string>& ports, double timeout_sec = 3.0);
-
+    MultiPortExoMotors(const std::vector<std::string>& serial_numbers, double timeout_sec = 3.0);
 
     SerialStatus connect() override;
     SerialStatus disconnect() override;
@@ -43,7 +42,8 @@ public:
 private:
     std::vector<int> weak_func;
     std::vector<std::string> ports_;
-    std::vector<QSerialPort*> serials_;
+    std::vector<std::string> serial_numbers_;
+    std::vector<std::unique_ptr<QSerialPort>> serials_;
     std::vector<SingleMotorData> prev_read_;
     std::vector<SingleMotorData> latest_full_read_;
     int64_t timeout_ns_;
@@ -53,7 +53,8 @@ private:
     std::string join_ports() const;
     std::vector<SingleMotorData> internal_read(int max_tries = 1);
 
-    SingleMotorData with_cntr_check(int address, std::function<void(QSerialPort*, int)> func);
-    SingleMotorData with_cntr_check(int address, std::function<void(QSerialPort*, int, int)> func, int value);
+    SingleMotorData with_cntr_check(const int address, const std::function<void(QSerialPort&, int)>& func);
+    SingleMotorData with_cntr_check(const int address, const std::function<void(QSerialPort&, int, int)>& func, int value);
 };
 
+} // exoskeleton::core

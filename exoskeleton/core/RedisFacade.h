@@ -15,7 +15,7 @@ public:
     explicit Facade(const std::string &uri = "tcp://127.0.0.1:6379");
 
     // Load conf:env → Settings (throws if required and empty)
-    exoskeleton::settings::Settings load_env(bool required = true);
+    [[nodiscard]] exoskeleton::settings::Settings load_env(bool required = true);
 
     // Load conf:user → UserParams (throws if missing)
     exoskeleton::settings::UserParams load_user_params();

@@ -1,21 +1,12 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
-#include <optional>
 #include <tuple>
 #include <stdexcept>
-#include <numeric>
-#include <algorithm>
 #include <vector>
 #include <string>
-
+#include <memory>
 #include <QSerialPort>
-#include <QSerialPortInfo>
-#include <QByteArray>
-#include <QDataStream>
-#include <QIODevice>
-#include <QtEndian>
 #include <QDebug>
 
 namespace exoskeleton::motor {
@@ -35,7 +26,19 @@ constexpr int8_t TORQUE_MIN = -127;
 constexpr int8_t TORQUE_MAX = 127;
 constexpr size_t FUNCTION_LEN = 360;
 
-extern bool log_command;
+constexpr size_t n_slots = 8;
+
+inline const std::vector<int> zero_function (FUNCTION_LEN);
+
+inline bool log_command = false;
+
+class SerialNumberNotFound : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+class CannotOpenSerialPort : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
 
 using SingleMotorDataTuple = std::tuple<bool, int, int, int32_t, int8_t>;
 
@@ -46,43 +49,27 @@ struct SingleMotorData {
     int32_t position;
     int32_t torque;
 
+    [[nodiscard]] static auto empty() -> SingleMotorData;
+
     SingleMotorData(bool en, int32_t slot, int32_t cmd, int32_t pos, int32_t tq);
-    SingleMotorDataTuple to_tuple() const;
 
-    static SingleMotorData empty() {
-        return SingleMotorData{false, 0, 0, 0, 0};
-    }
+    [[nodiscard]] auto to_tuple() const -> SingleMotorDataTuple;
+    [[nodiscard]] auto value() const -> const SingleMotorData&;
+    [[nodiscard]] auto is_valid() const -> bool;
+    [[nodiscard]] auto has_value() const -> bool;
 
-    const SingleMotorData& value() const {
-        return *this;
-    }
-
-    bool has_value() const {
-        return enabled ||
-               slot_idx != 0 ||
-               cmd_cntr != 0 ||
-               position != 0 ||
-               torque != 0;
-    }
-
-    friend std::ostream& operator<<(std::ostream &os, const SingleMotorData& data);
+    friend auto operator<<(std::ostream &os, const SingleMotorData& data) -> std::ostream&;
 };
 
-std::string find_cstny_usb_com_port();
-QSerialPort* open_serial(int baudrate = 1000000);
+[[nodiscard]] auto find_port_name_by_serial_num(std::string const& sn) -> std::string;
+[[nodiscard]] auto open_serial_port(std::string const& name) -> std::unique_ptr<QSerialPort>;
 
-int8_t calculateChecksum(const QByteArray &data);
-SingleMotorData read_data(QSerialPort* serial, int max_tries = 10);
-
-void send(QSerialPort* ser, int command, const QByteArray& data, int addr);
-void motor_set_zero(QSerialPort* ser, int addr = ADDR);
-void motor_enable(QSerialPort* ser, int addr = ADDR );
-void motor_disable(QSerialPort* ser, int addr = ADDR);
-void motor_set_offset(QSerialPort* ser, int value, int addr = ADDR);
-void motor_select_slot(QSerialPort* ser, int value);
-
-void motor_set_slot_function(QSerialPort* ser, int slot, const std::vector<int>& function_input);
-
-void reader_daemon(QSerialPort* ser);
+[[nodiscard]] auto read_data(QSerialPort& serial, int max_tries = 10) -> SingleMotorData;
+void motor_set_zero(QSerialPort& ser, int addr = ADDR);
+void motor_enable(QSerialPort& ser, int addr = ADDR);
+void motor_disable(QSerialPort& ser, int addr = ADDR);
+void motor_set_offset(QSerialPort& ser, int value, int addr = ADDR);
+void motor_select_slot(QSerialPort& ser, int value);
+void motor_set_slot_function(QSerialPort& ser, int slot, const std::vector<int>& function_input);
 
 }

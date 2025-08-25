@@ -3,10 +3,25 @@
 #include <string>
 #include <optional>
 #include <iterator>
+#include <nlohmann/json.hpp>
 #include "../motor/ExoMotorsInterface.h"
 
-
 namespace exoskeleton::redis_tools {
+    std::vector<int> parseJsonArray(const std::string& json_str) {
+        auto j = nlohmann::json::parse(json_str);
+        std::vector<int> result;
+
+        for (const auto& el : j) {
+            result.push_back(el.get<int>());
+        }
+        return result;
+    }
+
+    auto jsonArray(const std::vector<int>& array) -> std::string {
+        nlohmann::json out = array;
+        return out.dump();
+    }
+
     std::unordered_map<std::string, std::string>
     hgetall_map(sw::redis::Redis &redis, const std::string &key) {
         std::unordered_map<std::string, std::string> result;

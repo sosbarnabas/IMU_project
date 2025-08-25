@@ -1,9 +1,10 @@
 #pragma once
 
 #include <sw/redis++/redis++.h>
-#include "../motor/MultiPortExoMotors.h"
-#include "RedisTools.h"
+#include "../multiport/MultiPortExoMotors.h"
+#include "../core/RedisTools.h"
 
+namespace exoskeleton::core {
 
 class RedisSingleMotorController {
 public:
@@ -20,5 +21,7 @@ private:
     int n_motors_;
 
     void processCommand(const std::string& raw_command);
-    void measureAndStore();
+    auto measureAndStore() -> SingleMotorData;
 };
+
+} // exoskeleton::core

@@ -11,7 +11,7 @@ namespace exoskeleton::core {
         int n_tries = 0;
 		 SingleMotorData()
         : exoskeleton::motor::SingleMotorData{false, 0, 0, 0, 0} {}
-        bool is_valid();
+        bool is_valid() const;
         static SingleMotorData empty();
         std::string to_string() const;
         static SingleMotorData from_string(const std::string& record);
@@ -20,6 +20,8 @@ namespace exoskeleton::core {
     struct SerialStatus {
         bool connected;
         std::string name;
+
+        [[nodiscard]] std::string to_string() const;
     };
 
     class ExoMotorsInterface {

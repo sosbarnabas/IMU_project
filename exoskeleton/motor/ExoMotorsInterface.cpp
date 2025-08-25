@@ -25,7 +25,7 @@ namespace exoskeleton::core{
                std::to_string(n_tries);
     }
 
-    bool SingleMotorData::is_valid() {
+    bool SingleMotorData::is_valid() const {
             return !(slot_idx == 0 && cmd_cntr == 0 && position == 0 && torque == 0 && !enabled);
 
     }
@@ -43,4 +43,12 @@ namespace exoskeleton::core{
         std::getline(ss, item, ','); data.n_tries = std::stoi(item);
         return data;
     }
+
+    auto SerialStatus::to_string() const -> std::string {
+        auto s = std::to_string(this->connected);
+        s += "|";
+        s += this->name;
+        return s;
+    }
+
 }
