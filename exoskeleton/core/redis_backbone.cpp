@@ -1,4 +1,5 @@
 #include "redis_backbone.h"
+#include "RedisTools.h"
 #include <iostream>
 
 namespace exoskeleton::core {
@@ -18,7 +19,7 @@ auto RedisBackbone::operator() () -> void {
         // ... then check for exit condition.
         // This way they also can notice exit condition.
         if (auto const& exit_flag = redis_.get("exit"); exit_flag && *exit_flag == "1") {
-            std::cout << "Exited by \"exit\" command" << std::endl;
+            redis_tools::log(redis_, "main", "Exited by \"exit\" command");
             break;
         }
 

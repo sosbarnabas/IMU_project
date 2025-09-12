@@ -17,6 +17,7 @@ namespace exoskeleton::redis_tools {
     static const std::string COMMAND_RESULT_KEY = "commandres";
     static const std::string COMMAND_PARTIAL_RESULT_KEY = "commandrespart";
     static const std::string EXIT_KEY = "exit";
+    static const std::string log_key = "log";
 
     [[nodiscard]] auto parseJsonArray(const std::string& json_str) -> std::vector<int>;
     [[nodiscard]] auto jsonArray(const std::vector<int>& array) -> std::string;
@@ -39,5 +40,17 @@ namespace exoskeleton::redis_tools {
     std::optional<int> signal_data_ready(sw::redis::Redis &redis, int n_motors);
     void send_ok(sw::redis::Redis &redis, const std::string &key, const std::string &record);
     void send_error(sw::redis::Redis &redis, const std::string &key, const std::string &error);
+
+    enum class LogLevel {
+        debug,
+        info,
+        warning,
+        error,
+    };
+    void log(
+        sw::redis::Redis& redis,
+        const std::string& source,
+        const std::string& message,
+        LogLevel level = LogLevel::info);
 
 }

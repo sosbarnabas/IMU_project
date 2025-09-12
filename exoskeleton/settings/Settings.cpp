@@ -42,7 +42,7 @@ std::vector<std::string> Settings::motor_ids() const {
 
 std::vector<MotorProps> Settings::motor_props() const {
     std::vector<MotorProps> props;
-    size_t address = 0;
+    int address = 0;
     if (!motor_e_flex.empty())    props.emplace_back("e_flex", motor_e_flex, address++);
     if (!motor_e_ext.empty())     props.emplace_back("e_ext", motor_e_ext, address++);
     if (!motor_s_flex.empty())    props.emplace_back("s_flex", motor_s_flex, address++);
@@ -52,33 +52,5 @@ std::vector<MotorProps> Settings::motor_props() const {
     if (!motor_s_add_sup.empty()) props.emplace_back("s_add_sup", motor_s_add_sup, address++);
     return props;
 }
-
-}
-
-// File: settings/UserParams.h
-#pragma once
-
-#include <string>
-#include <unordered_map>
-
-namespace settings {
-
-class UserParams {
-public:
-    int motorforce_min;
-    int motorforce_max;
-    int bodyweight;
-    int upper_arm;
-    int upper_arm_cuff;
-    int forearm;
-    int forearm_cuff;
-    int cuff;
-    int motorforce;
-    int assist;
-    std::string selected_task;
-    int user_id;
-
-    static UserParams from_map(const std::unordered_map<std::string,std::string> &m);
-};
 
 }

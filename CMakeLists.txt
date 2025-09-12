@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.30.5)
-project(exoskeleton_core_cpp_local VERSION 0.2.0)
+project(exoskeleton_core_cpp_local VERSION 0.3.0)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
 #add_compile_options(/O2)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

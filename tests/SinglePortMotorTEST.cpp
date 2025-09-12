@@ -1,5 +1,6 @@
 #include "../exoskeleton/core/RedisSinglePortController.h"
 #include "../exoskeleton/core/RedisFacade.h"
+#include "../exoskeleton/core/RedisTools.h"
 #include "../exoskeleton/core/redis_backbone.h"
 #include <sw/redis++/redis++.h>
 #include <iostream>
@@ -26,6 +27,7 @@ int main(int argc, char *argv[]){
         int n_motors = motor_props.size();
         for (const auto& [name, sn, a] : motor_props) {
             std::cout << "[INFO] " << name << " (" << sn  << ", " << a << ")" << std::endl;
+            exoskeleton::redis_tools::log(redis, "main", name + " " + sn + " " + std::to_string(a));
         }
 
         int address = 0;
@@ -36,14 +38,16 @@ int main(int argc, char *argv[]){
         }));
 
         for (const auto& props : motor_props) {
-            QThread* controller_thread =QThread::create([props, n_motors]() {
+            QThread* controller_thread =QThread::create([&redis, props, n_motors]() {
                 try {
                   exoskeleton::core::RedisSinglePortController controller(props, n_motors);
                   controller.loop();
                 } catch (std::exception const& e) {
                     std::cerr << props.name << " [ERROR] Exception: " << e.what() << std::endl;
+                    exoskeleton::redis_tools::log(redis, props.name, e.what(), exoskeleton::redis_tools::LogLevel::error);
                 } catch (...) {
                     std::cerr << props.name << " [ERROR] Exception" << std::endl;
+                    exoskeleton::redis_tools::log(redis, props.name, "Unknown exception", exoskeleton::redis_tools::LogLevel::error);
                 }
             });
             threads.push_back(controller_thread);
