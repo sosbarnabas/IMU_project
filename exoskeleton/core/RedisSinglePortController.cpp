@@ -17,14 +17,14 @@ RedisSinglePortController::RedisSinglePortController(const settings::MotorProps&
 
 void RedisSinglePortController::loop() {
     motor_.connect();
+    const auto address_str = std::to_string(motor_props_.address);
 
     auto subscriber = exoskeleton::redis_tools::make_keyspace_subscriber(redis_,"sync:loop:next");
 
-    subscriber.on_message([this](const std::string& channel, const std::string& msg) {
-       // std::cout << "[DEBUG] sync:loop:next triggerelt: " << msg << std::endl;
+    subscriber.on_message([this, &address_str](const std::string& channel, const std::string& msg) {
         if (msg != "set") return;
 
-        auto raw_command = redis_.rpop("command:" + std::to_string(motor_props_.address));
+        auto raw_command = redis_.rpop("command:" + address_str);
 
         if (raw_command) {
             processCommand(*raw_command);
@@ -40,38 +40,40 @@ void RedisSinglePortController::loop() {
             if (auto const exit_flag = redis_.get("exit");
                 exit_flag && *exit_flag == "1") {
                 motor_.disable();  // TODO emergency_stop
-                std::cout << "Exited by \"exit\" command" << std::endl;
+                redis_tools::log(redis_, motor_props_.name, "Exited by \"exit\" command");
                 break;
                 }
 
-            if (auto const stop_flag = redis_.getset("stop:" + std::to_string(motor_props_.address), "0");
+            if (auto const stop_flag = redis_.getset("stop:" + address_str, "0");
                 stop_flag && *stop_flag == "1") {
-                std::cout << "stop" << std::endl;
+                redis_tools::log(redis_, motor_props_.name, "stop");
                 auto const data = motor_.disable();  // TODO emergency_stop
                 exoskeleton::redis_tools::send_ok(
                     redis_,
                     redis_tools::COMMAND_RESULT_KEY
-                    + ":stop:" + std::to_string(motor_props_.address),
+                    + ":stop:" + address_str,
                     data.to_string()
                 );
                 continue;
                 }
             subscriber.consume();  // ez figyeli az üzeneteket
         } catch (std::exception const& e) {
-            std::cerr << e.what() << '\n';
+            redis_tools::log(redis_, motor_props_.name, e.what(), redis_tools::LogLevel::error);
         } catch (...) {
-            std::cerr << "Unknown exception at " << __func__ << "\n";
+            redis_tools::log(redis_, motor_props_.name, "Unknown exception at " + std::string{__func__}, redis_tools::LogLevel::error);
         }
     }
 }
 
 void RedisSinglePortController::processCommand(const std::string &raw_command) {
+    const auto address_str = std::to_string(motor_props_.address);
+
     std::vector<std::string> parts;
     std::stringstream ss(raw_command);
     std::string tok;
     while (std::getline(ss, tok, '|')) parts.push_back(tok);
     if (parts.size() < 3) {
-        std::cerr << "Invalid command: " << raw_command << std::endl;
+        redis_tools::log(redis_, motor_props_.name, "Invalid command: " + raw_command, redis_tools::LogLevel::error);
         return;
     }
     const auto &t = parts[0];
@@ -79,7 +81,7 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
     int idx = std::stoi(parts[2]);
     bool partial = (idx == -1);
 
-    std::cerr << t << " " << c << " " << idx << std::endl;
+    redis_tools::log(redis_, motor_props_.name, raw_command);
 
     std::string key{partial ? redis_tools::COMMAND_PARTIAL_RESULT_KEY : redis_tools::COMMAND_RESULT_KEY};
     key += ":";
@@ -162,14 +164,14 @@ void RedisSinglePortController::processCommand(const std::string &raw_command) {
                 response += redis_tools::jsonArray(values);
             }
         } else {
-            std::cerr << "Unknown command: " << c << std::endl;
+            redis_tools::log(redis_, motor_props_.name, "Unknown command: " + c, redis_tools::LogLevel::error);
         }
 
-        exoskeleton::redis_tools::send_ok(redis_, key, response);
+        redis_tools::send_ok(redis_, key, response);
     }
     catch (const std::exception &e) {
-        std::cerr << "[DEBUG] Exception at: " << idx << std::endl;
-        exoskeleton::redis_tools::send_error(redis_, key, e.what());
+        redis_tools::send_error(redis_, key, e.what());
+        redis_tools::log(redis_, motor_props_.name, e.what(), redis_tools::LogLevel::error);
     }
 }
 

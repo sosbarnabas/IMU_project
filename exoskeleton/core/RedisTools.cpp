@@ -1,4 +1,5 @@
 #include "RedisTools.h"
+#include <chrono>
 #include <unordered_map>
 #include <string>
 #include <optional>
@@ -7,6 +8,23 @@
 #include "../motor/ExoMotorsInterface.h"
 
 namespace exoskeleton::redis_tools {
+    namespace {
+        auto map_log_level(LogLevel level) -> std::string {
+            switch (level) {
+                using enum LogLevel;
+                case debug:
+                    return "DEBUG";
+                case info:
+                    return "INFO";
+                case warning:
+                    return "WARNING";
+                case error:
+                    return "ERROR";
+                default:
+                    return "UNKNOWN_LEVEL";
+            }
+        }
+    }
     std::vector<int> parseJsonArray(const std::string& json_str) {
         auto j = nlohmann::json::parse(json_str);
         std::vector<int> result;
@@ -115,6 +133,16 @@ namespace exoskeleton::redis_tools {
             return std::nullopt;
         }
 
+    }
+
+    void log(sw::redis::Redis& redis, const std::string& source, const std::string& message, LogLevel level) {
+        std::unordered_map<std::string, std::string> fields =  {
+            {"t", std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())},
+            {"src", source},
+            {"level", map_log_level(level)},
+            {"msg", message},
+        };
+        redis.xadd(log_key, "*", fields.begin(), fields.end());
     }
 }
 
