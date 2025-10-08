@@ -42,12 +42,18 @@ add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
         exoskeleton/core/SinglePortExoMotor.cpp
         exoskeleton/core/RedisSinglePortController.cpp
         exoskeleton/core/redis_backbone.cpp
+        exoskeleton/core/commands.cpp
 )
 
 add_executable(READTEST tests/read_test.cpp
                         exoskeleton/motor/motor.cpp)
 
+add_executable(COMMANDS_TEST tests/commands_test.cpp
+        exoskeleton/core/commands.cpp)
+
 target_link_libraries(READTEST PRIVATE Qt6::Core Qt6::CorePrivate Qt6::SerialPort)
 target_link_libraries(REDIS_TEST PRIVATE Qt6::Core Qt6::CorePrivate Qt6::SerialPort redis++::redis++ hiredis::hiredis)
 target_link_libraries(SINGLEPORT PRIVATE Qt6::Core Qt6::CorePrivate Qt6::SerialPort redis++::redis++ hiredis::hiredis nlohmann_json::nlohmann_json foonathan::lexy)
 target_link_libraries(REDIS_TEST PRIVATE redis++::redis++ hiredis::hiredis)
+target_link_libraries(COMMANDS_TEST PRIVATE nlohmann_json::nlohmann_json foonathan::lexy)
+
