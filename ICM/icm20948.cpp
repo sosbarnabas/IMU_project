@@ -16,7 +16,8 @@
 //#include <iomanip>
 
 
-ICM20948::ICM20948(MCP2221 &mcpRef, uint8_t addr, int imu_id, IMUConfig cfg_): mcp(mcpRef), address(addr), cfg(cfg_), imu_id_(imu_id) {
+ICM20948::ICM20948(MCP2221 &mcpRef, uint8_t addr, int imu_id, IMUConfig cfg_): mcp(mcpRef), address(addr), cfg(cfg_),
+                                                                               imu_id_(imu_id) {
 }
 
 bool ICM20948::Initialize() const {
@@ -190,8 +191,7 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
     fifo_buffer.resize(fifo_read_size);
 
     //flags
-    bool overflow,underflow = false;
-
+    bool overflow = false, underflow = false;
 
 
     // Helper to switch between 10x and 15x safely
@@ -218,8 +218,13 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
 
         if (!using_high && fifo_size > high_thresh) {
             set_mult(pkt_mult_high); // drain faster
+            overflow = true;
         } else if (using_high && fifo_size < low_thresh) {
             set_mult(pkt_mult_base); // back to normal
+            underflow = true;
+        } else if (fifo_size < burst_size) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            continue;
         }
         mcp.i2cRead(address, ICM20948_FIFO_RW, fifo_buffer);
 
@@ -227,27 +232,29 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
             ImuSample sample{};
             const auto t_host = std::chrono::steady_clock::now();
             for (int i = 0; i < sample.accel.size(); i++) {
-                size_t idx = pkt_size * packet + i *2;
-                uint16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx+1]);
+                size_t idx = pkt_size * packet + i * 2;
+                int16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx + 1]);
                 const float accel_val = raw * accelconfig.scale;
                 sample.accel.at(i) = accel_val;
             }
             for (int i = 0; i < sample.gyro.size(); i++) {
-                size_t idx = pkt_size * packet + (i+3) *2;
-                uint16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx+1]);
+                size_t idx = pkt_size * packet + (i + 3) * 2;
+                int16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx + 1]);
                 const float gyro_val = raw * gyroconfig.scale;
                 sample.gyro.at(i) = gyro_val;
             }
 
             //Sample write
-                        sample.imu_id = imu_id_;
+            sample.imu_id = imu_id_;
             sample.seq = seq++;
             sample.t_host = t_host;
-            sample.fifo_overflow = false;
-            sample.fifo_underflow = false;
-            sample.mag = {0.0,0.0,0.0};
+            sample.fifo_overflow = overflow;
+            sample.fifo_underflow = underflow;
+            sample.mag = {0.0, 0.0, 0.0};
             sample.mag_ok = 0;
             out->enqueue(sample);
+            overflow = false;
+            underflow = false;
         }
     }
 }
