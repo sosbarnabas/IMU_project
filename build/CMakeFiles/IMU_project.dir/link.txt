@@ -1,0 +1,3 @@
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E rm -f CMakeFiles\IMU_project.dir/objects.a
+C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\ar.exe qc CMakeFiles\IMU_project.dir/objects.a @CMakeFiles\IMU_project.dir\objects1.rsp
+C:\PROGRA~1\MINGW-~1\X86_64~2.0-P\mingw64\bin\G__~1.EXE -g -Wl,--whole-archive CMakeFiles\IMU_project.dir/objects.a -Wl,--no-whole-archive -o IMU_project.exe -Wl,--out-implib,libIMU_project.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\IMU_project.dir\linklibs.rsp

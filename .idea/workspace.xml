@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="BackendCodeEditorMiscSettings">
+    <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="3" type="long" />
+    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
+  </component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
+  <component name="CMakeReloadState">
+    <option name="reloaded" value="true" />
+  </component>
+  <component name="CMakeRunConfigurationManager">
+    <generated>
+      <config projectName="IMU_project" targetName="IMU_project" />
+    </generated>
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="016eb6ee-da6f-431a-956a-944c045d70d1" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ChangesViewManager" show_ignored="true" />
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/ICM/icm20948.cpp" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+    <option name="showPreview" value="true" />
+  </component>
+  <component name="ProjectApplicationVersion">
+    <option name="ide" value="CLion" />
+    <option name="majorVersion" value="2025" />
+    <option name="minorVersion" value="1.2" />
+    <option name="productBranch" value="Classic" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="335OT4ZkB0DgS3MnE7Rg99IScmX" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "CMake Application.IMU_project.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.west.config.association.type.startup.service": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/lib",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "onboarding.tips.debug.path": "C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/main.cpp",
+    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\sosba\Documents\VII. felev anyagok\Szakdolgozat\IMU\IMU_project\lib" />
+      <recent name="C:\Users\sosba\Documents\VII. felev anyagok\Szakdolgozat\IMU\IMU_project" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\sosba\Documents\VII. felev anyagok\Szakdolgozat\IMU\IMU_project\MCP" />
+      <recent name="C:\Users\sosba\Documents\VII. felev anyagok\Szakdolgozat\IMU\IMU_project" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="IMU_project" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="IMU_project" TARGET_NAME="IMU_project" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="IMU_project" RUN_TARGET_NAME="IMU_project">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="016eb6ee-da6f-431a-956a-944c045d70d1" name="Changes" comment="" />
+      <created>1758603472764</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1758603472764</updated>
+      <workItem from="1758603475285" duration="14009000" />
+      <workItem from="1758620767408" duration="1382000" />
+      <workItem from="1758624728656" duration="179000" />
+      <workItem from="1758634064328" duration="6920000" />
+      <workItem from="1758658796824" duration="34000" />
+      <workItem from="1758659644174" duration="1445000" />
+      <workItem from="1758661772285" duration="919000" />
+      <workItem from="1758662745249" duration="1523000" />
+      <workItem from="1758689067657" duration="4625000" />
+      <workItem from="1758694218561" duration="893000" />
+      <workItem from="1758697727104" duration="785000" />
+      <workItem from="1758702073134" duration="1859000" />
+      <workItem from="1758705868866" duration="2823000" />
+      <workItem from="1758719599674" duration="42814000" />
+      <workItem from="1758908420716" duration="630000" />
+      <workItem from="1758909737557" duration="90767000" />
+      <workItem from="1759383047311" duration="28152000" />
+      <workItem from="1759660408054" duration="39571000" />
+      <workItem from="1759828848693" duration="6621000" />
+      <workItem from="1759901115275" duration="56291000" />
+      <workItem from="1760420077400" duration="4832000" />
+      <workItem from="1760618611775" duration="3484000" />
+      <workItem from="1761041887979" duration="2751000" />
+      <workItem from="1761571519387" duration="27000" />
+      <workItem from="1761599072792" duration="654000" />
+      <workItem from="1761865382694" duration="99000" />
+      <workItem from="1761896641916" duration="6498000" />
+      <workItem from="1761908163317" duration="3304000" />
+      <workItem from="1762110722596" duration="7666000" />
+      <workItem from="1762269906265" duration="8095000" />
+      <workItem from="1762545955519" duration="2578000" />
+      <workItem from="1762587697478" duration="1838000" />
+      <workItem from="1762608908756" duration="35361000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VCPKGProject">
+    <isAutomaticCheckingOnLaunch value="false" />
+    <isAutomaticFoundErrors value="true" />
+    <isAutomaticReloadCMake value="true" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$" />
+    </ignored-roots>
+  </component>
+  <component name="XDebuggerManager">
+    <watches-manager>
+      <configuration name="CMakeRunConfiguration">
+        <watch expression="emptyCount" />
+      </configuration>
+    </watches-manager>
+  </component>
+</project>

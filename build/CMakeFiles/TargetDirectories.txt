@@ -1,0 +1,3 @@
+C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/build/CMakeFiles/IMU_project.dir
+C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/build/CMakeFiles/edit_cache.dir
+C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/build/CMakeFiles/rebuild_cache.dir
