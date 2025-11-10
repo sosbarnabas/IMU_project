@@ -16,7 +16,7 @@ public:
     bool try_dequeue(T &item) {
         std::lock_guard<std::mutex> lk(mtx);
         if (queue.empty()) { return false; }
-        int item = queue.front();
+        item = queue.front();
         queue.pop_front();
         return true;
     }

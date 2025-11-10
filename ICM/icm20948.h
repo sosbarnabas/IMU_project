@@ -96,8 +96,10 @@ struct IMUConfig {
     //FIFO
      uint8_t FIFO_PACKET_SIZE = 12;
      uint8_t FIFO_PACKET_MULT = 10;
+    uint8_t FIFO_PACKET_MULT_HIGH = 15;
      uint16_t FIFO_MAX_SIZE = 4096;
      uint16_t FIFO_BURST_SIZE = FIFO_PACKET_SIZE * FIFO_PACKET_MULT;
+     uint16_t FIFO_BURST_SIZE_HIGH = FIFO_PACKET_SIZE * FIFO_PACKET_MULT_HIGH;
      uint16_t FIFO_COUNT_THRES = FIFO_BURST_SIZE * 3;
 };
 
@@ -168,6 +170,7 @@ private:
     MCP2221 &mcp;
         uint8_t address;
     IMUConfig cfg;
+    int imu_id_;
     GyroStruct gyroconfig = GYRO_HIGH;
     AccelStruct accelconfig = ACCEL_HIGH;
     std::vector<float> gyrobias = {0.0f, 0.0f, 0.0f};

@@ -16,7 +16,7 @@
 //#include <iomanip>
 
 
-ICM20948::ICM20948(MCP2221 &mcpRef, uint8_t addr, int imu_id, IMUConfig cfg_): mcp(mcpRef), address(addr), cfg(cfg_) {
+ICM20948::ICM20948(MCP2221 &mcpRef, uint8_t addr, int imu_id, IMUConfig cfg_): mcp(mcpRef), address(addr), cfg(cfg_), imu_id_(imu_id) {
 }
 
 bool ICM20948::Initialize() const {
@@ -164,23 +164,92 @@ void ICM20948::stop() {
 // Read FIFO count
 bool ICM20948::ReadFIFOSize(uint16_t &FIFOCount) {
     std::vector<uint8_t> data(2);
-    mcp.i2cRead(address, ICM20948_FIFO_COUNTH, data);
+    int status = mcp.i2cRead(address, ICM20948_FIFO_COUNTH, data);
+    if (status < 0) { return false; }
     FIFOCount = MergeHL(data.at(0), data.at(1));
     return true;
 }
 
 void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, IMUConfig cfg) {
-    const auto t0 = std::chrono::steady_clock::now();
-    uint32_t seq = 0;
-    int fifo_read_size = cfg.FIFO_BURST_SIZE;
-    int max_pkt_cnt = cfg.FIFO_MAX_SIZE / cfg.FIFO_BURST_SIZE;
-    std::vector<uint8_t> raw(fifo_read_size);
-    uint16_t fifosize = 0;
+    if (out == nullptr) { return; }
+    // Base and high multipliers from cfg
+    int pkt_size = cfg.FIFO_PACKET_SIZE; // bytes/packet
+    int pkt_mult_base = cfg.FIFO_PACKET_MULT; // e.g. 10
+    int pkt_mult_high = cfg.FIFO_PACKET_MULT_HIGH; // e.g. 15
+    int pkt_mult = pkt_mult_base;
 
-    while (fifosize < cfg.FIFO_COUNT_THRES) {
-        ReadFIFOSize(fifosize);
+    // Threshold multiplier to decide “very full”
+    int fifo_thres_mult = 8; // hysteresis gap
+
+    // Derived sizes (kept in sync via set_mult)
+    int fifo_read_size = pkt_mult * pkt_size; // bytes to read per burst
+    int burst_size = fifo_read_size; // alias for clarity
+
+    // Buffers
+    std::vector<uint8_t> fifo_buffer; // read buffer
+    fifo_buffer.resize(fifo_read_size);
+
+    //flags
+    bool overflow,underflow = false;
+
+
+
+    // Helper to switch between 10x and 15x safely
+    auto set_mult = [&](int m) {
+        pkt_mult = m;
+        fifo_read_size = pkt_mult * pkt_size;
+        burst_size = fifo_read_size;
+        fifo_buffer.resize(fifo_read_size);
+    };
+
+    uint16_t fifo_size = 0;
+    uint32_t seq = 0;
+    SelectBank(0);
+    //main loop
+    while (!st.stop_requested()) {
+        if (!ReadFIFOSize(fifo_size)) {
+            std::cerr << "Can't read FIFO size" << std::endl;
+            return;
+        }
+        // --- Multipliers---
+        const bool using_high = (pkt_mult == pkt_mult_high);
+        const uint16_t low_thresh = static_cast<uint16_t>(pkt_size * pkt_mult_base); // ~ one base burst
+        const uint16_t high_thresh = static_cast<uint16_t>(pkt_size * pkt_mult_base * fifo_thres_mult); // “very full”
+
+        if (!using_high && fifo_size > high_thresh) {
+            set_mult(pkt_mult_high); // drain faster
+        } else if (using_high && fifo_size < low_thresh) {
+            set_mult(pkt_mult_base); // back to normal
+        }
+        mcp.i2cRead(address, ICM20948_FIFO_RW, fifo_buffer);
+
+        for (int packet = 0; packet < pkt_mult; packet++) {
+            ImuSample sample{};
+            const auto t_host = std::chrono::steady_clock::now();
+            for (int i = 0; i < sample.accel.size(); i++) {
+                size_t idx = pkt_size * packet + i *2;
+                uint16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx+1]);
+                const float accel_val = raw * accelconfig.scale;
+                sample.accel.at(i) = accel_val;
+            }
+            for (int i = 0; i < sample.gyro.size(); i++) {
+                size_t idx = pkt_size * packet + (i+3) *2;
+                uint16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx+1]);
+                const float gyro_val = raw * gyroconfig.scale;
+                sample.gyro.at(i) = gyro_val;
+            }
+
+            //Sample write
+                        sample.imu_id = imu_id_;
+            sample.seq = seq++;
+            sample.t_host = t_host;
+            sample.fifo_overflow = false;
+            sample.fifo_underflow = false;
+            sample.mag = {0.0,0.0,0.0};
+            sample.mag_ok = 0;
+            out->enqueue(sample);
+        }
     }
-    std::cout << "FIFOSize: " << fifosize << std::endl;
 }
 
 
@@ -289,7 +358,7 @@ bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples) {
         mcp.i2cRead(address, ICM20948_FIFO_COUNTH, data);
         fifoCount = MergeHL(data.at(0), data.at(1));
         //std::cout << "Calib FIFO size: " << fifoCount << "sampleCount: " << sampleCount << std::endl;
-        if (fifoCount <= fifo_config.FIFO_BURST_SIZE) {
+        if (fifoCount <= _DLL.FIFO_BURST_SIZE) {
             std::cout << "FIFO underflow." << std::endl;
             if (++underflowCount >= 10) {
                 std::cout << "FIFO empty(" << fifoCount << "), underflowcount: " << underflowCount << std::endl;
