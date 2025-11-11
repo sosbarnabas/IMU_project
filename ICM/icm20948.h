@@ -4,6 +4,8 @@
 #include "../sensorfusion/Madgwick.h"
 #include "threadsafe_queue.h"
 #include "sample.h"
+#include <fstream>
+#include <filesystem>
 
 inline int ICM20948_SPEED = 100000; //Speed in HZ
 inline int ICM20948_ACCELGYRO_SAMPLERATE = 120;
@@ -76,8 +78,8 @@ struct AccelStruct {
     float scale;
 };
 
-constexpr AccelStruct ACCEL_LOW =  {0b00110101, 8.0 / 32768.0}; // +- 8g
-constexpr AccelStruct ACCEL_MID =  {0b00110011, 4.0 / 32768.0}; // +- 4g
+constexpr AccelStruct ACCEL_LOW = {0b00110101, 8.0 / 32768.0}; // +- 8g
+constexpr AccelStruct ACCEL_MID = {0b00110011, 4.0 / 32768.0}; // +- 4g
 constexpr AccelStruct ACCEL_HIGH = {0b00110001, 2.0 / 32768.0}; // +- 2g -> best accuracy
 
 //HELPER
@@ -94,13 +96,13 @@ constexpr float DEG2RAD = PI / 180.0f;
 
 struct IMUConfig {
     //FIFO
-     uint8_t FIFO_PACKET_SIZE = 12;
-     uint8_t FIFO_PACKET_MULT = 10;
+    uint8_t FIFO_PACKET_SIZE = 12;
+    uint8_t FIFO_PACKET_MULT = 10;
     uint8_t FIFO_PACKET_MULT_HIGH = 15;
-     uint16_t FIFO_MAX_SIZE = 4096;
-     uint16_t FIFO_BURST_SIZE = FIFO_PACKET_SIZE * FIFO_PACKET_MULT;
-     uint16_t FIFO_BURST_SIZE_HIGH = FIFO_PACKET_SIZE * FIFO_PACKET_MULT_HIGH;
-     uint16_t FIFO_COUNT_THRES = FIFO_BURST_SIZE * 3;
+    uint16_t FIFO_MAX_SIZE = 4096;
+    uint16_t FIFO_BURST_SIZE = FIFO_PACKET_SIZE * FIFO_PACKET_MULT;
+    uint16_t FIFO_BURST_SIZE_HIGH = FIFO_PACKET_SIZE * FIFO_PACKET_MULT_HIGH;
+    uint16_t FIFO_COUNT_THRES = FIFO_BURST_SIZE * 3;
 };
 
 inline extern const IMUConfig def_imu_cfg{};
@@ -116,7 +118,9 @@ inline extern const IMUConfig def_imu_cfg{};
 //     uint32_t seq{}; // növekvő számláló a producerből
 // }imu_sample;
 
-
+inline std::string calibPathTXT() {
+    return "../Data/calibration/biases.txt";
+}
 
 class ICM20948 {
 public:
@@ -144,46 +148,63 @@ public:
 
     bool FIFOConfig() const;
 
-        bool ReadFIFO() const;
+    bool ReadFIFO() const;
+
     //Thread safe start and stop for producer thread public
-    void start(TSQueue<ImuSample>& out){Start(out,cfg);}
-    void stop() ;
+    void start(TSQueue<ImuSample> &out) { Start(out, cfg); }
+
+    void stop();
 
 
     bool ReadDummyFIFO(int numofelements) const;
 
-    bool FlushFIFO(int numofelements,int waittime) const;
+    bool FlushFIFO(int numofelements, int waittime) const;
 
     void ReadExtSlvReg(int size) const;
-    std::vector<float>ReadGyroOffsets() const;
-    void WriteGyroOffsets(const std::vector<float>&gyroOffsets) const;
+
+    std::vector<float> ReadGyroOffsets() const;
+
+    void WriteGyroOffsets(const std::vector<float> &gyroOffsets) const;
+
     uint16_t AccelSampleRateSet(float sampleRate) const;
 
     uint16_t GyroSampleRateSet(float sampleRate) const; // Set Gyro Sample rate (reading rate in Hz)
     static int16_t MergeHL(uint8_t H, uint8_t L);
 
+    bool saveCalibrationAsTxt(const std::string &path);
 
+    bool loadCalibrationfromTxt(const std::string &path);
+
+    bool setZeroing() {
+        set_zero = !set_zero;
+        just_zeroed = true;
+        return set_zero;
+    }
 
 
     //~ICM20948();
 private:
     MCP2221 &mcp;
-        uint8_t address;
+    uint8_t address;
     IMUConfig cfg;
     int imu_id_;
     GyroStruct gyroconfig = GYRO_HIGH;
     AccelStruct accelconfig = ACCEL_HIGH;
-    std::vector<float> gyrobias = {0.0f, 0.0f, 0.0f};
-    std::vector<float> gyrobias_stored = {1.04734, -0.57577, 0.0299695};
-    std::vector<float> accelbias = {0.0f, 0.0f, 0.0f};
-    std::vector<float> accelbias_stored = {-0.00196,-0.0196, 0.987f};
+    std::array<float, 3> EulerOffset = {0.0, 0.0, 0.0};
+    std::array<float, 3> gyrobias = {0.0f, 0.0f, 0.0f};
+    std::array<float, 3> gyrobias_stored = {0.0f, 0.0f, 0.0f};
+    std::array<float, 3> accelbias = {0.0f, 0.0f, 0.0f};
+    std::array<float, 3> accelbias_stored = {0.0f, 0.0f, 0.0f};
     float calcbeta;
     //for threading
     std::jthread worker_;
+    bool set_zero = false, just_zeroed = false;
     //functions
 private:
     bool ReadFIFOSize(uint16_t &FIFOCount);
-    void ProducerLoop(const std::stop_token& st,TSQueue<ImuSample>* out, IMUConfig cfg);
+
+    void ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, IMUConfig cfg);
+
     //internal start for the producerloop
-    void Start(TSQueue<ImuSample>& out, const IMUConfig& cfg) ;
+    void Start(TSQueue<ImuSample> &out, const IMUConfig &cfg);
 };

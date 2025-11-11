@@ -170,7 +170,7 @@ void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float 
 
 
 /**************************************************************************/
-void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az, float dt) {
+void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az) {
     float recipNorm;
     float s0, s1, s2, s3;
     float qDot1, qDot2, qDot3, qDot4;
@@ -302,7 +302,7 @@ float nativeinvSqrt(float x) {
 
 
 /**************************************************************************/
-void QuaternionsToEulerAngles(float *euler_angles) {
+void QuaternionsToEulerAngles(std::array<float,3> &euler_angles) {
     // roll (x-axis rotation)
     double sinr_cosp = 2 * (q0 * q1 + q2 * q3);
     double cosr_cosp = 1 - 2 * (q1 * q1 + q2 * q2);
@@ -321,9 +321,9 @@ void QuaternionsToEulerAngles(float *euler_angles) {
     yaw = atan2(siny_cosp, cosy_cosp);
 
     /* Pass pointers through to main file */
-    euler_angles[0] = roll;
-    euler_angles[1] = pitch;
-    euler_angles[2] = yaw;
+    euler_angles.at(0) = roll;
+    euler_angles.at(1) = pitch;
+    euler_angles.at(2) = yaw;
 }
 
 void eulerAngles(float *euler_angles) {

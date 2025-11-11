@@ -12,8 +12,9 @@
 //
 //=====================================================================================================
 #pragma once
+#include <array>
 
-//----------------------------------------------------------------------------------------------------
+ //----------------------------------------------------------------------------------------------------
 // Variable declaration
 
 extern volatile float beta;             // algorithm gain
@@ -24,10 +25,10 @@ extern volatile float q0, q1, q2, q3;   // quaternion of sensor frame relative t
 // Function declarations
 
 void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
-void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az,float dt);
+void MadgwickAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az);
 
 
-void QuaternionsToEulerAngles( float *euler_angles );
+void QuaternionsToEulerAngles( std::array<float,3> &euler_angles );
 void eulerAngles(float *euler_angles);
 void eulerAnglesRPswap(float *euler_angles);
 

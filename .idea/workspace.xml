@@ -28,8 +28,14 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="016eb6ee-da6f-431a-956a-944c045d70d1" name="Changes" comment="Producerloop finished">
+    <list default="true" id="016eb6ee-da6f-431a-956a-944c045d70d1" name="Changes" comment="updated with core">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ICM/icm20948.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/ICM/icm20948.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ICM/icm20948.h" beforeDir="false" afterPath="$PROJECT_DIR$/ICM/icm20948.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/.cmake/api/v1/reply/index-2025-11-10T06-21-42-0886.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/sample.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/sample.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sensorfusion/Madgwick.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/sensorfusion/Madgwick.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sensorfusion/Madgwick.h" beforeDir="false" afterPath="$PROJECT_DIR$/sensorfusion/Madgwick.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,10 +68,10 @@
   }
 }</component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ICM/icm20948.cpp" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
@@ -171,7 +177,7 @@
       <workItem from="1762269906265" duration="8095000" />
       <workItem from="1762545955519" duration="2578000" />
       <workItem from="1762587697478" duration="1838000" />
-      <workItem from="1762608908756" duration="46653000" />
+      <workItem from="1762608908756" duration="69976000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <option name="closed" value="true" />
@@ -189,7 +195,23 @@
       <option name="project" value="LOCAL" />
       <updated>1762767585309</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="updated overflow logic">
+      <option name="closed" value="true" />
+      <created>1762770274975</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1762770274975</updated>
+    </task>
+    <task id="LOCAL-00004" summary="updated with core">
+      <option name="closed" value="true" />
+      <created>1762776733346</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1762776733346</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -223,7 +245,9 @@
     </ignored-roots>
     <MESSAGE value="Initial commit" />
     <MESSAGE value="Producerloop finished" />
-    <option name="LAST_COMMIT_MESSAGE" value="Producerloop finished" />
+    <MESSAGE value="updated overflow logic" />
+    <MESSAGE value="updated with core" />
+    <option name="LAST_COMMIT_MESSAGE" value="updated with core" />
   </component>
   <component name="XDebuggerManager">
     <watches-manager>
