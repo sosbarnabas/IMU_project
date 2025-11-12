@@ -893,7 +893,7 @@ bool ICM20948::ReadFIFO() const {
                 //Normal use
                 MadgwickAHRSupdateIMU(AccelGyroData[3] * DEG2RAD, AccelGyroData[4] * DEG2RAD,
                                       AccelGyroData[5] * DEG2RAD,
-                                      AccelGyroData[0], AccelGyroData[1], AccelGyroData[2], sensor_delay);
+                                      AccelGyroData[0], AccelGyroData[1], AccelGyroData[2]);
                 //we want to cancel out gimbal lock on IMU pitch/Y axis to mount it perpendicular so we swap x and y, (maybe -1*z?)
                 // MadgwickAHRSupdateIMU(AccelGyroData[4] * DEG2RAD, AccelGyroData[3] * DEG2RAD,
                 //                      -AccelGyroData[5] * DEG2RAD,

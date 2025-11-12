@@ -4,9 +4,11 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <vector>
+#include "../motor/ExoMotorsInterface.h"
+#include "../motor/motor.h"
 
-namespace exoskeleton::redis_tools {
+namespace exoskeleton::redis_tools
+{
 
     // Redis key constants
     static const std::string STARTED_KEY = "started";
@@ -18,8 +20,8 @@ namespace exoskeleton::redis_tools {
     static const std::string EXIT_KEY = "exit";
     static const std::string log_key = "log";
 
-    [[nodiscard]] auto parseJsonArray(const std::string& json_str) -> std::vector<int>;
-    [[nodiscard]] auto jsonArray(const std::vector<int>& array) -> std::string;
+    [[nodiscard]] auto parseJsonArray(const std::string &json_str) -> std::vector<int>;
+    [[nodiscard]] auto jsonArray(const std::vector<int> &array) -> std::string;
 
     std::unordered_map<std::string, std::string>
     hgetall_map(sw::redis::Redis &redis, const std::string &key);
@@ -35,17 +37,27 @@ namespace exoskeleton::redis_tools {
         sw::redis::Redis &redis,
         const std::string &key);
 
-    enum class LogLevel {
+    void xadd_motor_data(sw::redis::Redis &redis, int address, const exoskeleton::core::SingleMotorData &data);
+
+    // IMU data streaming (forward declare ImuSample from include/sample.h if needed)
+    struct ImuSample; // forward declaration
+    void xadd_imu_data(sw::redis::Redis &redis, int imu_id, const ImuSample &sample);
+
+    std::optional<int> signal_data_ready(sw::redis::Redis &redis, int n_motors);
+    void send_ok(sw::redis::Redis &redis, const std::string &key, const std::string &record);
+    void send_error(sw::redis::Redis &redis, const std::string &key, const std::string &error);
+
+    enum class LogLevel
+    {
         debug,
         info,
         warning,
         error,
     };
-    
     void log(
-        sw::redis::Redis& redis,
-        const std::string& source,
-        const std::string& message,
+        sw::redis::Redis &redis,
+        const std::string &source,
+        const std::string &message,
         LogLevel level = LogLevel::info);
 
 }

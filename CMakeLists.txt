@@ -7,6 +7,10 @@ include_directories(lib)
 include_directories(MCP)
 include_directories(ICM)
 include_directories(include)
+# include_directories(exoskeleton)
+# include_directories(exoskeleton/core)
+# include_directories(exoskeleton/settings)
+# include_directories(exoskeleton/motor)
 
 
 add_executable(IMU_project main.cpp
@@ -16,8 +20,10 @@ add_executable(IMU_project main.cpp
         sensorfusion/Madgwick.cpp
         include/sample.h
         include/threadsafe_queue.h
-
-
+        # exoskeleton/core/RedisSingleIMUController.cpp
+        # exoskeleton/core/RedisSingleIMUController.h
+        # exoskeleton/core/RedisTools.cpp
+        # exoskeleton/core/RedisTools.h
 )
 
 
