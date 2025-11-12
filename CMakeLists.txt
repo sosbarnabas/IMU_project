@@ -16,16 +16,14 @@ include_directories(include)
 add_executable(IMU_project main.cpp
         MCP/mcp2221.cpp
         ICM/icm20948.cpp
-        #ICM/i_c_m20948_driver.cpp
         sensorfusion/Madgwick.cpp
-        include/sample.h
+        include/ImuSample.h
         include/threadsafe_queue.h
         # exoskeleton/core/RedisSingleIMUController.cpp
         # exoskeleton/core/RedisSingleIMUController.h
         # exoskeleton/core/RedisTools.cpp
         # exoskeleton/core/RedisTools.h
 )
-
 
 
 # Link the MCP2221 import library

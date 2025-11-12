@@ -12,6 +12,7 @@ struct ImuSample {
     std::array<float, 3> gyro{0, 0, 0};
     std::array<float, 3> mag{0, 0, 0};
     std::array<float, 3> euler{0, 0, 0};
+    uint16_t fifosize;
     // optional status flags
     uint8_t fifo_overflow: 1{};
     uint8_t fifo_underflow: 1{};

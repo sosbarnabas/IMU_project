@@ -3,12 +3,12 @@
 #include "mcp2221.h"
 #include "../sensorfusion/Madgwick.h"
 #include "threadsafe_queue.h"
-#include "sample.h"
+#include "ImuSample.h"
 #include <fstream>
 #include <filesystem>
 
 inline int ICM20948_SPEED = 100000; //Speed in HZ
-inline int ICM20948_ACCELGYRO_SAMPLERATE = 120;
+inline int ICM20948_ACCELGYRO_SAMPLERATE = 75;
 
 inline uint8_t ICM20948_ADDRESS = 0x69;
 inline uint8_t ICM20948_WHOAMI = 0x00;
@@ -97,8 +97,8 @@ constexpr float DEG2RAD = PI / 180.0f;
 struct IMUConfig {
     //FIFO
     uint8_t FIFO_PACKET_SIZE = 12;
-    uint8_t FIFO_PACKET_MULT = 10;
-    uint8_t FIFO_PACKET_MULT_HIGH = 15;
+    uint8_t FIFO_PACKET_MULT = 5;
+    uint8_t FIFO_PACKET_MULT_HIGH = 10;
     uint16_t FIFO_MAX_SIZE = 4096;
     uint16_t FIFO_BURST_SIZE = FIFO_PACKET_SIZE * FIFO_PACKET_MULT;
     uint16_t FIFO_BURST_SIZE_HIGH = FIFO_PACKET_SIZE * FIFO_PACKET_MULT_HIGH;

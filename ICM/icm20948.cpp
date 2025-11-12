@@ -203,6 +203,7 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
         fifo_read_size = pkt_mult * pkt_size;
         burst_size = fifo_read_size;
         fifo_buffer.resize(fifo_read_size);
+        std::cout << "Fifo multiplier set to " << pkt_mult << " ,burst size "<< burst_size <<std::endl;
     };
 
     uint16_t fifo_size = 0;
@@ -272,6 +273,7 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
                 EulerOffset[0] = euler_[0];
                 EulerOffset[1] = euler_[1];
                 EulerOffset[2] = euler_[2];
+                just_zeroed = false;
             }
             for (int e = 0; e < euler_.size(); e++) {
                 if (set_zero) {
@@ -288,13 +290,14 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
             sample.t_host = t_host;
             sample.fifo_overflow = overflow;
             sample.fifo_underflow = underflow;
+            sample.fifosize = fifo_size;
             sample.mag = {0.0, 0.0, 0.0};
             sample.mag_ok = 0;
             out->enqueue(sample);
         }
         overflow = false;
         underflow = false;
-        just_zeroed = false;
+
     }
 }
 
@@ -571,7 +574,7 @@ bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples) {
         } else if (using_high && fifo_size < low_thresh) {
             set_mult(pkt_mult_base); // back to normal
         } else if (fifo_size < burst_size) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
         mcp.i2cRead(address, ICM20948_FIFO_RW, fifo_buffer);
@@ -611,7 +614,7 @@ bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples) {
     double calibduration = std::chrono::duration_cast<std::chrono::seconds>(calibend - calibstart).count();
     std::cout << "AccelBias: " << sumAccel.at(0) << " " << sumAccel.at(1) << " " << sumAccel.at(2) << " GyroBias: "
             << sumGyro.at(0) << " " << sumGyro.at(1) << " " << sumGyro.at(2) << std::endl;
-
+    saveCalibrationAsTxt(calibPathTXT());
 
     return true;
 }
@@ -723,7 +726,8 @@ bool ICM20948::ReadFIFO() const {
     bool LogActive = false;
     std::ofstream LogFile; // global file stream
 
-    float EulerOffset[3]; //RADIANS!
+
+    std::array<float,3>EulerOffset_; //RADIANS!
 
     int underflowCount = 0;
     int overflowCount = 0;
@@ -901,25 +905,25 @@ bool ICM20948::ReadFIFO() const {
 
 
                 AccelSquare = 0.0f;
-                float euler[3];
-                QuaternionsToEulerAngles(euler);
+                std::array<float,3> euler_;
+                QuaternionsToEulerAngles(euler_);
                 //eulerAngles(euler);
                 //eulerAnglesRPswap(euler);
                 // Convert to degrees
                 if (oPressedJustNow) {
-                    EulerOffset[0] = euler[0];
-                    EulerOffset[1] = euler[1];
-                    EulerOffset[2] = euler[2];
+                    EulerOffset_.at(0) = euler_.at(0);
+                    EulerOffset_.at(1) = euler_.at(1);
+                    EulerOffset_.at(2) = euler_.at(2);
                     oPressedJustNow = false;
                 }
                 if (offsetActive) {
-                    roll_deg = (euler[0] - EulerOffset[0]) * RAD2DEG;
-                    pitch_deg = (euler[1] - EulerOffset[1]) * RAD2DEG;
-                    yaw_deg = (euler[2] - EulerOffset[2]) * RAD2DEG;
+                    roll_deg = (euler_[0] - EulerOffset[0]) * RAD2DEG;
+                    pitch_deg = (euler_[1] - EulerOffset[1]) * RAD2DEG;
+                    yaw_deg = (euler_.at(2) - EulerOffset[2]) * RAD2DEG;
                 } else {
-                    roll_deg = euler[0] * RAD2DEG;
-                    pitch_deg = euler[1] * RAD2DEG;
-                    yaw_deg = euler[2] * RAD2DEG;
+                    roll_deg = euler_.at(0) * RAD2DEG;
+                    pitch_deg = euler_.at(1) * RAD2DEG;
+                    yaw_deg = euler_.at(2) * RAD2DEG;
                 }
                 if (LogActive) {
                     LogFile << iterator << ";"

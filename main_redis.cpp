@@ -5,7 +5,7 @@
 #include "mcp2221.h"
 #include "icm20948.h"
 #include "threadsafe_queue.h"
-#include "sample.h"
+#include "ImuSample.h"
 #include "exoskeleton/core/RedisSingleIMUController.h"
 #include "exoskeleton/core/RedisTools.h"
 

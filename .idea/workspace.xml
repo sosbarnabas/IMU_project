@@ -31,32 +31,13 @@
     <list default="true" id="016eb6ee-da6f-431a-956a-944c045d70d1" name="Changes" comment="updated with core">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/CommandClient.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/CommandClient.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/EnvLoader.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/EnvLoader.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/IMUStreamClient.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/IMUStreamClient.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/RedisFacade.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/RedisFacade.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/RedisKeys.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/RedisTelemetryClient.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/RedisTelemetryClient.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/RedisTools.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/RedisTools.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/Settings.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/Settings.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/SlotFunctionManager.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/SlotFunctionManager.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/TelemetryController.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/TelemetryController.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/TelemetrySimulator.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/UserParams.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Redis/UserParams.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Data/calibration/biases.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Data/calibration/biases.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ICM/i_c_m20948_driver.cpp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/ICM/icm20948.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/ICM/icm20948.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/.cmake/api/v1/reply/codemodel-v2-5bcd49ac7713c654b6c3.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/.cmake/api/v1/reply/index-2025-11-11T11-37-37-0560.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/.cmake/api/v1/reply/target-IMU_project-Debug-7e34b740001214875431.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/ICM/icm20948.h" beforeDir="false" afterPath="$PROJECT_DIR$/ICM/icm20948.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/sample.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ImuSample.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main_redis.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/main_redis.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sensorfusion/Madgwick.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/sensorfusion/Madgwick.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -94,7 +75,35 @@
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/ICM/icm20948.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
