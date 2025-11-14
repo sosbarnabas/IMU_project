@@ -1,6 +1,6 @@
 #include <iostream>
-#include "../exoskeleton/redis/RedisFacade.h"
-#include "../exoskeleton/redis/RedisTools.h"
+#include "../exoskeleton/core/RedisFacade.h"
+#include "../exoskeleton/core/RedisTools.h"
 #include "../exoskeleton/settings/Settings.h"
 #include "../exoskeleton/settings/UserParams.h"
 #include <unordered_map>
@@ -24,7 +24,7 @@ int main() {
         {"motor_s_abd", "motor6"},
         {"motor_s_add_sup", "motor7"},
         {"multiport_motors", "1"},
-        {"mock_motors", "0"},
+        {"mock_motors", "1"},
         {"restapi_port", "8080"},
         {"db_admin_pw", "test_password"}
     };
