@@ -180,7 +180,7 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
     int pkt_mult = pkt_mult_base;
 
     // Threshold multiplier to decide “very full”
-    int fifo_thres_mult = 8; // hysteresis gap
+    int fifo_thres_mult = 6; // hysteresis gap
 
     // Derived sizes (kept in sync via set_mult)
     int fifo_read_size = pkt_mult * pkt_size; // bytes to read per burst
@@ -197,19 +197,20 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
     float sum_accel = 0.0, normalized_accel = 0.0;
 
 
-    // Helper to switch between 10x and 15x safely
+    // Helper to switch between 5x and 10x safely
     auto set_mult = [&](int m) {
         pkt_mult = m;
         fifo_read_size = pkt_mult * pkt_size;
         burst_size = fifo_read_size;
         fifo_buffer.resize(fifo_read_size);
-        std::cout << "Fifo multiplier set to " << pkt_mult << " ,burst size "<< burst_size <<std::endl;
+        std::cout << "Fifo multiplier set to " << pkt_mult << " ,burst size " << burst_size << std::endl;
     };
 
     uint16_t fifo_size = 0;
     uint32_t seq = 0;
     SelectBank(0);
     //main loop
+    FlushFIFO(200, 500);
     while (!st.stop_requested()) {
         if (!ReadFIFOSize(fifo_size)) {
             std::cerr << "Can't read FIFO size" << std::endl;
@@ -291,13 +292,16 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
             sample.fifo_overflow = overflow;
             sample.fifo_underflow = underflow;
             sample.fifosize = fifo_size;
+            sample.fifomult = pkt_mult;
             sample.mag = {0.0, 0.0, 0.0};
             sample.mag_ok = 0;
             out->enqueue(sample);
+            std::cout << "[DEBUG] Euler: " << sample.euler.at(0) << " " << sample.euler.at(1) << " " << sample.euler.at(2) << std::endl;
+            std::cout << "[DEBUG] Gyro: " << sample.gyro.at(0) << " " << sample.gyro.at(1) << " " << sample.gyro.at(2) << std::endl;
+            std::cout << "[DEBUG] Accel: " << sample.accel.at(0) << " " << sample.accel.at(1) << " " << sample.accel.at(2) << std::endl;
         }
         overflow = false;
         underflow = false;
-
     }
 }
 
@@ -478,13 +482,13 @@ bool ICM20948::saveCalibrationAsTxt(const std::string &stringpath) {
     const std::filesystem::path path(stringpath);
     std::filesystem::path parent = path.parent_path();
     if (!std::filesystem::exists(parent)) {
-        std::cout << "[DEBUG] Calibration path not exists" <<std::endl;
+        std::cout << "[DEBUG] Calibration path not exists" << std::endl;
         std::filesystem::create_directories(parent);
     }
     std::ofstream ofs;
     ofs.open(path, std::ofstream::out);
     if (!ofs) {
-        std::cout << "[DEBUG] Can't create calibration file" <<std::endl;
+        std::cout << "[DEBUG] Can't create calibration file" << std::endl;
         return false;
     };
     ofs << "gyro_bias: " << gyrobias_stored.at(0) << ';' << gyrobias_stored.at(1) << ';' << gyrobias_stored.at(2) <<
@@ -493,7 +497,7 @@ bool ICM20948::saveCalibrationAsTxt(const std::string &stringpath) {
             '\n';
 
     ofs.close();
-    std::cout << "[DEBUG] Calibration file saved" <<std::endl;
+    std::cout << "[DEBUG] Calibration file saved" << std::endl;
     gyrobias = gyrobias_stored;
     accelbias = accelbias_stored;
     return true;
@@ -503,7 +507,7 @@ bool ICM20948::saveCalibrationAsTxt(const std::string &stringpath) {
 bool ICM20948::loadCalibrationfromTxt(const std::string &path) {
     std::ifstream ifs(path);
     if (!ifs) return false;
-
+    std::cout << "[DEBUG] Calibration file found" << std::endl;
     std::string line;
     auto parseLine = [](const std::string &src, const std::string &key, std::array<float, 3> &out) -> bool {
         if (src.rfind(key, 0) != 0) return false; // must start with key
@@ -522,6 +526,7 @@ bool ICM20948::loadCalibrationfromTxt(const std::string &path) {
 
     gyrobias = gyrobias_stored;
     accelbias = accelbias_stored;
+    std::cout << "[DEBUG] Calibration file loaded: " << gyrobias.at(0) << " " << gyrobias.at(1) << std::endl;
     return gotG && gotA;
 }
 
@@ -734,7 +739,7 @@ bool ICM20948::ReadFIFO() const {
     std::ofstream LogFile; // global file stream
 
 
-    std::array<float,3>EulerOffset_; //RADIANS!
+    std::array<float, 3> EulerOffset_; //RADIANS!
 
     int underflowCount = 0;
     int overflowCount = 0;
@@ -912,7 +917,7 @@ bool ICM20948::ReadFIFO() const {
 
 
                 AccelSquare = 0.0f;
-                std::array<float,3> euler_;
+                std::array<float, 3> euler_;
                 QuaternionsToEulerAngles(euler_);
                 //eulerAngles(euler);
                 //eulerAnglesRPswap(euler);

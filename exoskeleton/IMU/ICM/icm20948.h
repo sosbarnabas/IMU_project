@@ -120,7 +120,7 @@ inline extern const IMUConfig def_imu_cfg{};
 // }imu_sample;
 
 inline std::string calibPathTXT() {
-    return "../Data/calibration/biases.txt";
+    return "../exoskeleton/IMU/Data/calibration/biases.txt";
 }
 
 class ICM20948 {

@@ -2,6 +2,7 @@
 #include <string>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <sw/redis++/redis++.h>
 #include "../IMU/ICM/icm20948.h"
 #include "../IMU/MCP/mcp2221.h"
@@ -71,9 +72,8 @@ namespace exoskeleton::core
 
         // Producer/consumer queue for IMU samples (preferred over ReadFIFO)
         TSQueue<ImuSample> sample_queue_;
-        std::thread consumer_thread_;
+        std::jthread consumer_thread_;
         std::atomic<bool> consumer_running_{false};
-        std::atomic<bool> stop_consumer_{false};
 
         // Calibration data
         bool calibration_loaded_ = false;
