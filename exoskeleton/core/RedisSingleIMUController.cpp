@@ -351,8 +351,8 @@ namespace exoskeleton::core {
                     // fields.emplace_back("mag_y", std::to_string(sample.mag[1]));
                     // fields.emplace_back("mag_z", std::to_string(sample.mag[2]));
                     fields.emplace_back("euler_roll", std::to_string(sample.euler.at(0)));
-                    fields.emplace_back("euler_pitch", std::to_string(sample.euler.at(0)));
-                    fields.emplace_back("euler_yaw", std::to_string(sample.euler.at(0)));
+                    fields.emplace_back("euler_pitch", std::to_string(sample.euler.at(1)));
+                    fields.emplace_back("euler_yaw", std::to_string(sample.euler.at(2)));
                     fields.emplace_back("fifo_size", std::to_string(sample.fifosize));
                     fields.emplace_back("fifo_mult", std::to_string(sample.fifomult));
                     uint8_t flags = 0;

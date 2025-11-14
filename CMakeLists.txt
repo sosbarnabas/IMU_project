@@ -36,10 +36,6 @@ add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
         exoskeleton/settings/Settings.cpp
         exoskeleton/settings/UserParams.cpp
         exoskeleton/core/RedisTools.cpp
-        exoskeleton/core/RedisSingleIMUController.cpp
-        exoskeleton/IMU/ICM/icm20948.cpp
-        exoskeleton/IMU/sensorfusion/Madgwick.cpp
-        exoskeleton/IMU/MCP/mcp2221.cpp
         exoskeleton/multiport/RedisSingleMotorController.cpp
         exoskeleton/motor/motor.cpp
         exoskeleton/multiport/MultiPortExoMotors.cpp
@@ -48,22 +44,30 @@ add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
         exoskeleton/core/RedisSinglePortController.cpp
         exoskeleton/core/redis_backbone.cpp
         exoskeleton/core/commands.cpp
+        #IMU files
+        exoskeleton/IMU/sensorfusion/Madgwick.cpp
+        exoskeleton/IMU/ICM/icm20948.cpp
+        exoskeleton/IMU/MCP/mcp2221.cpp
+        exoskeleton/core/RedisSingleIMUController.cpp
 )
 
 add_executable(READTEST tests/read_test.cpp
-                        exoskeleton/motor/motor.cpp)
+        exoskeleton/motor/motor.cpp)
 
 add_executable(COMMANDS_TEST tests/commands_test.cpp
         exoskeleton/core/commands.cpp)
 
 add_executable(MOCK_MOTORS_TEST tests/mock_motors_test.cpp
+        #mocking
         exoskeleton/mock/MockExoMotors.cpp
         exoskeleton/mock/MockRedisSinglePortController.cpp
-        exoskeleton/core/RedisTools.cpp
+        #IMU files
         exoskeleton/IMU/sensorfusion/Madgwick.cpp
-        exoskeleton/core/RedisSingleIMUController.cpp
         exoskeleton/IMU/ICM/icm20948.cpp
         exoskeleton/IMU/MCP/mcp2221.cpp
+        exoskeleton/core/RedisSingleIMUController.cpp
+
+        exoskeleton/core/RedisTools.cpp
         exoskeleton/motor/motor.cpp
         exoskeleton/motor/ExoMotorsInterface.cpp
         exoskeleton/settings/Settings.cpp
