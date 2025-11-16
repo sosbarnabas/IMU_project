@@ -60,14 +60,14 @@ namespace exoskeleton::core {
         : imu_id_(imu_id),
           device_key_("imu:" + std::to_string(imu_id)),
           mcp_(mcp2221_ref),
-          imu_(nullptr),
+          icm20948(nullptr),
           redis_(redis_uri) {
         std::cout << "[IMUController] Initialized for " << device_key_ << " at address 0x69\n";
     }
 
     RedisSingleIMUController::~RedisSingleIMUController() {
-        if (imu_) {
-            imu_.reset();
+        if (icm20948) {
+            icm20948.reset();
         }
         std::cout << "[IMUController] Destroyed\n";
     }
@@ -118,9 +118,9 @@ namespace exoskeleton::core {
         std::cout << "[IMUController] Stopping...\n";
         // Stop consumer thread and request IMU producer stop
         stopConsumer();
-        if (imu_) {
+        if (icm20948) {
             try {
-                imu_->stop();
+                icm20948->stop();
             } catch (...) {
             }
         }
@@ -156,13 +156,13 @@ namespace exoskeleton::core {
                     //icm init is mvoed here
                     auto start = std::chrono::steady_clock::now();
                     // Create ICM instance
-                    if (!imu_) {
-                        imu_ = std::make_unique<ICM20948>(mcp_, 0x69, imu_id_, def_imu_cfg);
+                    if (!icm20948) {
+                        icm20948 = std::make_unique<ICM20948>(mcp_, 0x69, imu_id_, def_imu_cfg);
                     }
-                    if (imu_->Initialize()) {
-                        if (imu_->FIFOConfig()) {
+                    if (icm20948->Initialize()) {
+                        if (icm20948->FIFOConfig()) {
                             // Start the IMU producer that pushes ImuSample into sample_queue_
-                            // imu_->start(sample_queue_);
+                            // icm20948->start(sample_queue_);
                             // startConsumer();
 
                             auto end = std::chrono::steady_clock::now();
@@ -194,14 +194,14 @@ namespace exoskeleton::core {
                 auto start = std::chrono::steady_clock::now();
 
                 // Create ICM instance
-                if (!imu_) {
-                    imu_ = std::make_unique<ICM20948>(mcp_, 0x69, imu_id_, def_imu_cfg);
+                if (!icm20948) {
+                    icm20948 = std::make_unique<ICM20948>(mcp_, 0x69, imu_id_, def_imu_cfg);
                 }
 
-                if (imu_->Initialize()) {
-                    if (imu_->FIFOConfig()) {
+                if (icm20948->Initialize()) {
+                    if (icm20948->FIFOConfig()) {
                         // Start the IMU producer that pushes ImuSample into sample_queue_
-                        // imu_->start(sample_queue_);
+                        // icm20948->start(sample_queue_);
                         // startConsumer();
 
                         auto end = std::chrono::steady_clock::now();
@@ -220,7 +220,7 @@ namespace exoskeleton::core {
                     log("ERROR", "ICM-20948 initialization failed at address 0x69");
                 }
             } else if (cmd == "calibrate") {
-                if (!imu_) {
+                if (!icm20948) {
                     publishResponse("calibrate", "ER:IMU not initialized (run icminit first)");
                     return;
                 }
@@ -233,7 +233,7 @@ namespace exoskeleton::core {
                     std::cout << "[IMUController] Performing calibration (this may take up to 1 second)...\n";
                     auto start = std::chrono::steady_clock::now();
 
-                    imu_->CalibrateAccelGyro(1000); // 1 second calibration
+                    icm20948->CalibrateAccelGyro(1000); // 1 second calibration
 
                     auto end = std::chrono::steady_clock::now();
                     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -242,7 +242,7 @@ namespace exoskeleton::core {
                     publishResponse("calibrate", "OK:calibration_complete_" + std::to_string(duration.count()) + "ms");
                     log("INFO", "Calibration performed and saved");
                 } else if (cal_mode == "load") {
-                    imu_->loadCalibrationfromTxt(calibPathTXT());
+                    icm20948->loadCalibrationfromTxt(calibPathTXT());
                     publishResponse("calibrate", "OK:calibration_loaded");
                     calibration_loaded_ = true;
                     log("INFO", "Calibration loaded from file");
@@ -250,11 +250,11 @@ namespace exoskeleton::core {
                     publishResponse("calibrate", "ER:Invalid calibration mode (use 'save' or 'load')");
                 }
             } else if (cmd == "start") {
-                if (!imu_) {
+                if (!icm20948) {
                     publishResponse("start", "ER:IMU not initialized");
                     return;
                 }
-                imu_->start(sample_queue_);
+                icm20948->start(sample_queue_);
                 startConsumer();
                 sampling_active_ = true;
                 sample_sequence_ = 0;
@@ -263,7 +263,7 @@ namespace exoskeleton::core {
                 std::cout << prefix << "Sampling started\n";
             } else if (cmd == "stop") {
                 sampling_active_ = false;
-                imu_->stop();
+                icm20948->stop();
                 stopConsumer(); // Stop the consumer thread
                 publishResponse("stop", "OK:sampling_stopped");
                 log("INFO", "IMU sampling stopped");
@@ -274,7 +274,7 @@ namespace exoskeleton::core {
                     return;
                 }
 
-                bool enable_zero = imu_->setZeroing();
+                bool enable_zero = icm20948->setZeroing();
                 // zeroing_enabled_ = enable_zero;
 
                 if (enable_zero) {
@@ -289,7 +289,7 @@ namespace exoskeleton::core {
                     mcp_.close();
                     connected_ = false;
                     sampling_active_ = false;
-                    imu_.reset();
+                    icm20948.reset();
 
                     publishResponse("disconnect", "OK");
                     log("INFO", "Disconnected from IMU");
@@ -310,7 +310,7 @@ namespace exoskeleton::core {
         // Obsolete: This ReadFIFO-based path has been replaced by the
         // producer/consumer model where the IMU pushes `ImuSample` into
         // `sample_queue_` and the consumer thread publishes them to Redis.
-        (void) imu_;
+        (void) icm20948;
     }
 
     void RedisSingleIMUController::startConsumer() {
@@ -323,15 +323,6 @@ namespace exoskeleton::core {
                     ImuSample sample = sample_queue_.wait_dequeue();
                     if (st.stop_requested()) break;
 
-                    // // Apply zeroing if enabled
-                    // float euler_x = sample.euler[0];
-                    // float euler_y = sample.euler[1];
-                    // float euler_z = sample.euler[2];
-                    // if (zeroing_enabled_) {
-                    //     euler_x -= euler_zero_ref_[0];
-                    //     euler_y -= euler_zero_ref_[1];
-                    //     euler_z -= euler_zero_ref_[2];
-                    // }
 
                     // Publish to Redis stream
                     auto key = std::string("xdata:") + device_key_;

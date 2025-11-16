@@ -60,7 +60,7 @@ namespace exoskeleton::core
         int imu_id_;
         std::string device_key_; // "imu:0" for 0x69 address
         MCP2221 &mcp_;
-        std::unique_ptr<ICM20948> imu_;
+        std::unique_ptr<ICM20948> icm20948;
         sw::redis::Redis redis_;
         std::mutex redis_mutex_;
 
