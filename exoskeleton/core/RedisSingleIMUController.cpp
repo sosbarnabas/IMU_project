@@ -1,4 +1,5 @@
 #include "RedisSingleIMUController.h"
+#include "RedisTools.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -73,58 +74,74 @@ namespace exoskeleton::core {
     }
 
     void RedisSingleIMUController::loop() {
-        std::cout << "[IMUController] Starting main loop (75Hz)...\n";
+        std::cout << "[IMUController] Starting main loop (75Hz producer, Redis-driven commands)...\n";
         std::cout << "[IMUController] Commands: connect, icminit, calibrate, start, stop, zero, disconnect\n";
         std::cout << "[IMUController] Command queue: command:" << device_key_ << "\n";
         std::cout << "[IMUController] Data stream: xdata:" << device_key_ << "\n";
 
-        auto last_data_push = std::chrono::steady_clock::now();
-        const auto data_push_interval = std::chrono::milliseconds(13); // ~75Hz (13.3ms)
+        // Optional: a flag to break out of the while loop from inside the callback
+        std::atomic<bool> stop_requested{false};
 
-        while (true) {
+        // Subscribe to the same tick key as motors
+        auto subscriber =
+                exoskeleton::redis_tools::make_keyspace_subscriber(redis_, "sync:loop:next");
+
+        subscriber.on_message([this, &stop_requested](const std::string &channel,
+                                                      const std::string &msg) {
+            if (msg != "set") {
+                return;
+            }
+
+            // Check exit flag: same semantics as everywhere else
+            if (auto exit_flag = redis_.get("exit"); exit_flag && *exit_flag == "1") {
+                std::cout << "[IMUController] Exit signal received.\n";
+                stop_requested = true;
+                return;
+            }
+
+            // Process at most one command per tick from the IMU command list
+            const std::string cmd_key = "command:" + device_key_;
+            auto raw_command = redis_.lpop(cmd_key);
+            if (!raw_command) {
+                return;
+            }
+
             try {
-                // Check exit flag
-                if (auto exit_flag = redis_.get("exit"); exit_flag && *exit_flag == "1") {
-                    std::cout << "[IMUController] Exit signal received.\n";
-                    break;
-                }
+                processCommand(*raw_command);
+            } catch (const std::exception &e) {
+                std::cerr << "[IMUController] Command error: " << e.what() << "\n";
+                publishResponse("unknown", std::string("ER:") + e.what());
+            } catch (...) {
+                std::cerr << "[IMUController] Unknown command error\n";
+                publishResponse("unknown", "ER:unknown_exception");
+            }
+        });
 
-                // Process commands
-                auto cmd_key = std::string("command:") + device_key_;
-                auto raw_command = redis_.lpop(cmd_key);
-                if (raw_command) {
-                    try {
-                        processCommand(*raw_command);
-                    } catch (const std::exception &e) {
-                        std::cerr << "[IMUController] Command error: " << e.what() << "\n";
-                        publishResponse("unknown", std::string("ER:") + e.what());
-                    }
-                }
-
-                // IMU samples are produced into `sample_queue_` by the IMU
-                // producer thread. A dedicated consumer thread drains that
-                // queue and publishes to Redis. The old ReadFIFO path is
-                // obsolete and therefore not used here.
-
-                // Small sleep to prevent busy-waiting
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        // Main loop: just consume sync:loop:next events
+        while (!stop_requested.load()) {
+            try {
+                subscriber.consume(); // blocks until next "set" on sync:loop:next
             } catch (const std::exception &e) {
                 std::cerr << "[IMUController] Loop error: " << e.what() << "\n";
                 log("ERROR", std::string("Main loop error: ") + e.what());
+                break;
+            } catch (...) {
+                std::cerr << "[IMUController] Unknown loop error\n";
+                log("ERROR", "Unknown exception in IMU main loop");
                 break;
             }
         }
 
         std::cout << "[IMUController] Stopping...\n";
-        // Stop consumer thread and request IMU producer stop
-        stopConsumer();
+
+        // Same shutdown sequence as before
+        stopConsumer(); // stop the consumer thread draining sample_queue_
         if (icm20948) {
             try {
-                icm20948->stop();
+                icm20948->stop(); // stop producer inside ICM
             } catch (...) {
             }
         }
-        // Close MCP if we own/managed it; leave to caller if not
         try {
             mcp_.close();
         } catch (...) {
@@ -254,8 +271,13 @@ namespace exoskeleton::core {
                     publishResponse("start", "ER:IMU not initialized");
                     return;
                 }
+                if (!calibration_loaded_) {
+                    publishResponse("start", "ER:IMU not calibrated (run 'calibrate save' or 'calibrate load' first)");
+                    return;
+                }
+
                 icm20948->start(sample_queue_);
-                startConsumer();
+                startConsumer(); // now starts the sync:data:ready subscriber
                 sampling_active_ = true;
                 sample_sequence_ = 0;
                 publishResponse("start", "OK:sampling_started");
@@ -306,71 +328,156 @@ namespace exoskeleton::core {
         }
     }
 
-    void RedisSingleIMUController::measureAndStore() {
-        // Obsolete: This ReadFIFO-based path has been replaced by the
-        // producer/consumer model where the IMU pushes `ImuSample` into
-        // `sample_queue_` and the consumer thread publishes them to Redis.
-        (void) icm20948;
+    void RedisSingleIMUController::onFrameStoreIMU(std::chrono::steady_clock::time_point frame_time) {
+        if (!is_ready_for_measurements()) {
+            // IMU not yet connected / calibrated / started: do nothing.
+            return;
+        }
+
+        // 1) Drain all available samples from sample_queue_ into buffered_samples_
+        {
+            ImuSample s;
+            while (sample_queue_.try_dequeue(s)) {
+                std::lock_guard<std::mutex> lock(buffered_samples_mutex_);
+                buffered_samples_.push_back(std::move(s));
+            }
+        }
+
+        // 2) From buffered_samples_, find the last sample with t_host <= frame_time_ns.
+        std::optional<ImuSample> selected; {
+            std::lock_guard<std::mutex> lock(buffered_samples_mutex_);
+
+            // buffered_samples_ is assumed to be time-ordered (oldest at front).
+            while (!buffered_samples_.empty()) {
+                const ImuSample &front = buffered_samples_.front();
+
+                if (front.t_host <= frame_time) {
+                    // This sample is not newer than the frame time: keep it as candidate
+                    selected = front;
+                    buffered_samples_.pop_front();
+                } else {
+                    // The front sample is already in the future relative to this frame.
+                    // Stop here; it (and anything after it) will be used for later frames.
+                    break;
+                }
+            }
+        }
+
+        if (!selected) {
+            // No IMU sample <= frame_time_ns yet; skip this frame.
+            // (Optionally you could reuse last selected or handle differently.)
+            return;
+        }
+
+        // 3) Publish the selected sample to Redis stream as one IMU record for this frame.
+        const ImuSample &sample = *selected;
+
+        const std::string key = std::string("xdata:") + device_key_;
+
+        std::vector<std::pair<std::string, std::string> > fields;
+        // Use sample.t_host as timestamp (already computed in FIFO parser using ODR + read time).
+        fields.emplace_back("t_ns", std::to_string(
+                                duration_cast<std::chrono::nanoseconds>(
+                                    sample.t_host.time_since_epoch()).count()));
+
+        fields.emplace_back("seq", std::to_string(sample.seq));
+        fields.emplace_back("imu_id", std::to_string(sample.imu_id));
+        fields.emplace_back("euler_roll", std::to_string(sample.euler.at(0)));
+        fields.emplace_back("euler_pitch", std::to_string(sample.euler.at(1)));
+        fields.emplace_back("euler_yaw", std::to_string(sample.euler.at(2)));
+        fields.emplace_back("fifo_size", std::to_string(sample.fifosize));
+        fields.emplace_back("fifo_mult", std::to_string(sample.fifomult));
+
+        std::uint8_t flags = 0;
+        if (sample.fifo_overflow) flags |= 0x01;
+        if (sample.fifo_underflow) flags |= 0x02;
+        if (sample.mag_ok) flags |= 0x04;
+        fields.emplace_back("flags", std::to_string(flags));
+
+        try {
+            std::lock_guard<std::mutex> lock(redis_mutex_);
+            redis_.xadd(key, "*", fields.begin(), fields.end());
+        } catch (const std::exception &e) {
+            std::cerr << "[IMUController] Error publishing IMU frame sample: " << e.what() << "\n";
+        }
+    }
+
+    bool RedisSingleIMUController::is_ready_for_measurements() const {
+        // IMU must be created & initialized, calibration must be done,
+        // and sampling must be active (producer + consumer running).
+        return icm20948 != nullptr
+               && calibration_loaded_
+               && sampling_active_;
     }
 
     void RedisSingleIMUController::startConsumer() {
-        if (consumer_running_)
+        if (consumer_running_) {
             return;
+        }
         consumer_running_ = true;
+
         consumer_thread_ = std::jthread([this](std::stop_token st) {
             try {
-                while (!st.stop_requested()) {
-                    ImuSample sample = sample_queue_.wait_dequeue();
-                    if (st.stop_requested()) break;
+                // Subscribe to "sync:data:ready" keyspace notifications.
+                // We assume the same helper as for motors: make_keyspace_subscriber(redis_, key_name).
+                auto subscriber =
+                        exoskeleton::redis_tools::make_keyspace_subscriber(redis_, "sync:data:ready");
 
+                subscriber.on_message([this, &st](const std::string &channel,
+                                                  const std::string &msg) {
+                    if (st.stop_requested()) {
+                        return;
+                    }
 
-                    // Publish to Redis stream
-                    auto key = std::string("xdata:") + device_key_;
-                    uint64_t t_ns = nowNs();
-                    std::vector<std::pair<std::string, std::string> > fields;
-                    fields.emplace_back("t_ns", std::to_string(t_ns));
-                    //fields.emplace_back("t_ns", std::to_string(sample.t_host);
-                    fields.emplace_back("seq", std::to_string(sample.seq));
-                    fields.emplace_back("imu_id", std::to_string(sample.imu_id));
-                    // fields.emplace_back("accel_x", std::to_string(sample.accel[0]));
-                    // fields.emplace_back("accel_y", std::to_string(sample.accel[1]));
-                    // fields.emplace_back("accel_z", std::to_string(sample.accel[2]));
-                    // fields.emplace_back("gyro_x", std::to_string(sample.gyro[0]));
-                    // fields.emplace_back("gyro_y", std::to_string(sample.gyro[1]));
-                    // fields.emplace_back("gyro_z", std::to_string(sample.gyro[2]));
-                    // fields.emplace_back("mag_x", std::to_string(sample.mag[0]));
-                    // fields.emplace_back("mag_y", std::to_string(sample.mag[1]));
-                    // fields.emplace_back("mag_z", std::to_string(sample.mag[2]));
-                    fields.emplace_back("euler_roll", std::to_string(sample.euler.at(0)));
-                    fields.emplace_back("euler_pitch", std::to_string(sample.euler.at(1)));
-                    fields.emplace_back("euler_yaw", std::to_string(sample.euler.at(2)));
-                    fields.emplace_back("fifo_size", std::to_string(sample.fifosize));
-                    fields.emplace_back("fifo_mult", std::to_string(sample.fifomult));
-                    uint8_t flags = 0;
-                    if (sample.fifo_overflow) flags |= 0x01;
-                    if (sample.fifo_underflow) flags |= 0x02;
-                    if (sample.mag_ok) flags |= 0x04;
-                    fields.emplace_back("flags", std::to_string(flags));
+                    if (msg != "set") {
+                        return; // we only care about SET events
+                    }
 
+                    // Read frame time from Redis key "sync:data:ready"
+                    auto t_str = redis_.get("sync:data:ready");
+                    if (!t_str) {
+                        return; // no valid timestamp
+                    }
+
+                    std::int64_t frame_time_ns = 0;
                     try {
-                        std::lock_guard<std::mutex> lock(redis_mutex_);
-                        redis_.xadd(key, "*", fields.begin(), fields.end());
+                        frame_time_ns = std::stoll(*t_str);
+                    } catch (...) {
+                        // Malformed timestamp; skip this event
+                        return;
+                    }
+                    // Convert int64 ns → steady_clock::time_point
+                    std::chrono::steady_clock::time_point frame_time{std::chrono::nanoseconds{frame_time_ns}};
+                    // Handle this frame: select best IMU sample <= frame_time_ns and publish
+                    this->onFrameStoreIMU(frame_time);
+                });
+
+                // Main event loop: block on keyspace notifications
+                while (!st.stop_requested()) {
+                    try {
+                        subscriber.consume(); // waits for next keyspace event
                     } catch (const std::exception &e) {
-                        std::cerr << "[IMUController] Error publishing sample: " << e.what() << "\n";
+                        std::cerr << "[IMUController] Consumer subscriber exception: " << e.what() << "\n";
+                        // Optionally log error and break; for now we break.
+                        break;
+                    } catch (...) {
+                        std::cerr << "[IMUController] Consumer subscriber unknown exception\n";
+                        break;
                     }
                 }
             } catch (const std::exception &e) {
                 std::cerr << "[IMUController] Consumer thread exception: " << e.what() << "\n";
             }
+
+            consumer_running_ = false;
         });
     }
+
 
     void RedisSingleIMUController::stopConsumer() {
         if (!consumer_running_)
             return;
 
-        // Request stop via stop_token
-        consumer_thread_.request_stop();
 
         // Wake up the consumer if it's blocked on wait_dequeue
         try {
@@ -378,9 +485,10 @@ namespace exoskeleton::core {
         } catch (...) {
         }
 
-        // jthread auto-joins in destructor, but we explicitly wait if needed
-        if (consumer_thread_.joinable())
+        if (consumer_thread_.joinable()) {
+            consumer_thread_.request_stop();
             consumer_thread_.join();
+        }
         consumer_running_ = false;
     }
 

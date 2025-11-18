@@ -197,7 +197,13 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
     float sum_accel = 0.0, normalized_accel = 0.0;
 
 
-    // Helper to switch between 5x and 10x safely
+    // Compute period in integer nanoseconds (1e9 ns per second)
+    std::int64_t sample_period_ns_i64 =
+        static_cast<std::int64_t>(1000000000.0 / ICM20948_ACCELGYRO_SAMPLERATE);
+    // Use this as your chrono duration
+    const std::chrono::nanoseconds sample_period_ns(sample_period_ns_i64);
+
+     // Helper to switch between 5x and 10x safely
     auto set_mult = [&](int m) {
         pkt_mult = m;
         fifo_read_size = pkt_mult * pkt_size;
@@ -205,8 +211,8 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
         fifo_buffer.resize(fifo_read_size);
         std::cout << "Fifo multiplier set to " << pkt_mult << " ,burst size " << burst_size << std::endl;
     };
+     uint16_t fifo_size = 0;
 
-    uint16_t fifo_size = 0;
     uint32_t seq = 0;
     SelectBank(0);
     //main loop
@@ -218,8 +224,9 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
         }
         // --- Multipliers---
         const bool using_high = (pkt_mult == pkt_mult_high);
-        const uint16_t low_thresh = static_cast<uint16_t>(pkt_size * pkt_mult_base); // ~ one base burst
-        const uint16_t high_thresh = static_cast<uint16_t>(pkt_size * pkt_mult_base * fifo_thres_mult); // “very full”
+        const uint16_t low_thresh = static_cast<uint16_t>(pkt_size * pkt_mult* (fifo_thres_mult/3)); // ~ one base burst
+        const uint16_t high_thresh = static_cast<uint16_t>(pkt_size * pkt_mult * fifo_thres_mult); // “very full”
+        //std::cout << "Low thres: " << low_thresh << ", high thres: " <<high_thresh << ", mult: " <<pkt_mult << std::endl;
 
         if (!using_high && fifo_size > high_thresh) {
             set_mult(pkt_mult_high); // drain faster
@@ -228,14 +235,19 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
             set_mult(pkt_mult_base); // back to normal
             underflow = true;
         } else if (fifo_size < burst_size) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
+        auto fiforeadstart = std::chrono::steady_clock::now();
         mcp.i2cRead(address, ICM20948_FIFO_RW, fifo_buffer);
-
+        auto fiforeadend = std::chrono::steady_clock::now();
+        auto fiforeadduration = std::chrono::duration_cast<std::chrono::nanoseconds>(fiforeadend - fiforeadstart);
+        // For better accuracy, assume the newest sample corresponds to (t_read_end - read_duration)
+        auto t_newest = fiforeadend - fiforeadduration;
+        std::cout << "FIFO read duration: " << fiforeadduration.count() << " us" << std::endl;
         for (int packet = 0; packet < pkt_mult; packet++) {
             ImuSample sample{};
-            const auto t_host = std::chrono::steady_clock::now();
+
             for (int i = 0; i < sample.accel.size(); i++) {
                 size_t idx = pkt_size * packet + i * 2;
                 int16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx + 1]);
@@ -285,10 +297,12 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
             }
 
 
+            //Time calculations to calculate time, because time is importat
+            auto offset = sample_period_ns * (pkt_mult - 1 - packet);
             //Sample write
             sample.imu_id = imu_id_;
             sample.seq = seq++;
-            sample.t_host = t_host;
+            sample.t_host = t_newest-offset;
             sample.fifo_overflow = overflow;
             sample.fifo_underflow = underflow;
             sample.fifosize = fifo_size;
@@ -296,13 +310,17 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
             sample.mag = {0.0, 0.0, 0.0};
             sample.mag_ok = 0;
             out->enqueue(sample);
-            std::cout << "[DEBUG] Euler: " << sample.euler.at(0) << " " << sample.euler.at(1) << " " << sample.euler.at(2) << std::endl;
-            std::cout << "[DEBUG] Gyro: " << sample.gyro.at(0) << " " << sample.gyro.at(1) << " " << sample.gyro.at(2) << std::endl;
-            std::cout << "[DEBUG] Accel: " << sample.accel.at(0) << " " << sample.accel.at(1) << " " << sample.accel.at(2) << std::endl;
+
+
+           // sample_start = sample_end;
+            //std::cout << "Sample duration: " << sample_duration.count() << " us" << std::endl;
+           // std::cout << "[DEBUG] Euler: " << sample.euler.at(0) << " " << sample.euler.at(1) << " " << sample.euler.at(2) << std::endl;
+           // std::cout << "[DEBUG] Gyro: " << sample.gyro.at(0) << " " << sample.gyro.at(1) << " " << sample.gyro.at(2) << std::endl;
+           // std::cout << "[DEBUG] Accel: " << sample.accel.at(0) << " " << sample.accel.at(1) << " " << sample.accel.at(2) << std::endl;
         }
         overflow = false;
         underflow = false;
-    }
+         }
 }
 
 

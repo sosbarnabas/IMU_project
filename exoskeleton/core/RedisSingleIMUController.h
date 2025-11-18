@@ -3,6 +3,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <chrono>
 #include <sw/redis++/redis++.h>
 #include "../IMU/ICM/icm20948.h"
 #include "../IMU/MCP/mcp2221.h"
@@ -79,6 +80,10 @@ namespace exoskeleton::core
         bool calibration_loaded_ = false;
         std::array<float, 3> euler_zero_ref_{0, 0, 0}; // Reference Euler angles for zeroing
 
+        // New buffering for time-aligned samples
+        std::deque<ImuSample> buffered_samples_;
+        mutable std::mutex buffered_samples_mutex_;
+
         /**
          * Process a single command from Redis.
          * Commands: connect, icminit, calibrate, start, stop, zero, disconnect
@@ -90,6 +95,7 @@ namespace exoskeleton::core
          * Also applies zeroing if enabled.
          */
         void measureAndStore();
+        void onFrameStoreIMU(std::chrono::steady_clock::time_point frame_time);
 
         // Start/stop the consumer thread that drains `sample_queue_` and
         // publishes samples to Redis. The producer is started by calling
@@ -107,6 +113,11 @@ namespace exoskeleton::core
          * Log message to Redis log stream with IMU tag.
          */
         void log(const std::string &level, const std::string &message);
+
+        /**
+        * Chack if everything is good before keyspace subscribing to dartaready
+        */
+        bool is_ready_for_measurements() const;
     };
 
 } // namespace exoskeleton::core
