@@ -2,8 +2,8 @@
 #include <string>
 #include <memory>
 #include <mutex>
-#include <thread>
 #include <chrono>
+#include <thread>
 #include <sw/redis++/redis++.h>
 #include "../IMU/ICM/icm20948.h"
 #include "../IMU/MCP/mcp2221.h"

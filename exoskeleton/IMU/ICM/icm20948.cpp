@@ -244,7 +244,7 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
         auto fiforeadduration = std::chrono::duration_cast<std::chrono::nanoseconds>(fiforeadend - fiforeadstart);
         // For better accuracy, assume the newest sample corresponds to (t_read_end - read_duration)
         auto t_newest = fiforeadend - fiforeadduration;
-        std::cout << "FIFO read duration: " << fiforeadduration.count() << " us" << std::endl;
+        //std::cout << "FIFO read duration: " << fiforeadduration.count() << " us" << std::endl;
         for (int packet = 0; packet < pkt_mult; packet++) {
             ImuSample sample{};
 

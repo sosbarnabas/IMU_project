@@ -1,5 +1,6 @@
 #include "RedisTools.h"
 #include <chrono>
+#include <iostream>
 #include <unordered_map>
 #include <string>
 #include <optional>
@@ -7,82 +8,105 @@
 #include <nlohmann/json.hpp>
 #include "../motor/ExoMotorsInterface.h"
 
-namespace exoskeleton::redis_tools {
-    namespace {
-        auto map_log_level(LogLevel level) -> std::string {
-            switch (level) {
+namespace exoskeleton::redis_tools
+{
+    namespace
+    {
+        auto map_log_level(LogLevel level) -> std::string
+        {
+            switch (level)
+            {
                 using enum LogLevel;
-                case debug:
-                    return "DEBUG";
-                case info:
-                    return "INFO";
-                case warning:
-                    return "WARNING";
-                case error:
-                    return "ERROR";
-                default:
-                    return "UNKNOWN_LEVEL";
+            case debug:
+                return "DEBUG";
+            case info:
+                return "INFO";
+            case warning:
+                return "WARNING";
+            case error:
+                return "ERROR";
+            default:
+                return "UNKNOWN_LEVEL";
             }
         }
     }
-    std::vector<int> parseJsonArray(const std::string& json_str) {
+
+    std::vector<int> parseJsonArray(const std::string& json_str)
+    {
         auto j = nlohmann::json::parse(json_str);
         std::vector<int> result;
 
-        for (const auto& el : j) {
+        for (const auto& el : j)
+        {
             result.push_back(el.get<int>());
         }
         return result;
     }
 
-    auto jsonArray(const std::vector<int>& array) -> std::string {
+    auto jsonArray(const std::vector<int>& array) -> std::string
+    {
         nlohmann::json out = array;
         return out.dump();
     }
 
     std::unordered_map<std::string, std::string>
-    hgetall_map(sw::redis::Redis &redis, const std::string &key) {
+    hgetall_map(sw::redis::Redis& redis, const std::string& key)
+    {
         std::unordered_map<std::string, std::string> result;
         redis.hgetall(key, std::inserter(result, result.begin()));
         return result;
     }
 
     std::optional<std::string>
-    get_opt(sw::redis::Redis &redis, const std::string &key) {
+    get_opt(sw::redis::Redis& redis, const std::string& key)
+    {
         auto v = redis.get(key);
-        if (v) {
+        if (v)
+        {
             return *v;
         }
         return std::nullopt;
     }
 
-    bool get_flag(sw::redis::Redis &redis,
-                  const std::string &key,
-                  bool clear) {
-        if (clear) {
+    bool get_flag(sw::redis::Redis& redis,
+                  const std::string& key,
+                  bool clear)
+    {
+        if (clear)
+        {
             auto val = redis.getset(key, "0");
-            if (val) {
-                try {
+            if (val)
+            {
+                try
+                {
                     return std::stoi(*val) != 0;
-                } catch (...) {
+                }
+                catch (...)
+                {
                     return false;
                 }
             }
             return false;
-        } else {
+        }
+        else
+        {
             auto v = redis.get(key);
             if (!v) return false;
-            try {
+            try
+            {
                 return std::stoi(*v) != 0;
-            } catch (...) {
+            }
+            catch (...)
+            {
                 return false;
             }
         }
     }
 
     sw::redis::Subscriber make_keyspace_subscriber(
-        sw::redis::Redis &redis,
-        const std::string &key) {
+        sw::redis::Redis& redis,
+        const std::string& key)
+    {
         // Enable keyspace notifications
         redis.command<std::string>("CONFIG", "SET", "notify-keyspace-events", "KEA");
 
@@ -93,7 +117,8 @@ namespace exoskeleton::redis_tools {
         return sub;
     }
 
-    void xadd_motor_data(sw::redis::Redis &redis, int address, const exoskeleton::core::SingleMotorData &data) {
+    void xadd_motor_data(sw::redis::Redis& redis, int address, const exoskeleton::core::SingleMotorData& data)
+    {
         std::unordered_map<std::string, std::string> fields = {
             {"t", std::to_string(data.t)},
             {"n_tries", std::to_string(data.n_tries)},
@@ -109,34 +134,42 @@ namespace exoskeleton::redis_tools {
     }
 
 
-
-    void send_ok(sw::redis::Redis &redis, const std::string &key, const std::string &record) {
+    void send_ok(sw::redis::Redis& redis, const std::string& key, const std::string& record)
+    {
         //std::cerr << key << " " << record << std::endl;
         redis.lpush(key, "OK:" + record);
     }
 
-    void send_error(sw::redis::Redis &redis, const std::string &key, const std::string &error) {
+    void send_error(sw::redis::Redis& redis, const std::string& key, const std::string& error)
+    {
         redis.lpush(key, "ER:" + error);
     }
-    std::optional<int> signal_data_ready(sw::redis::Redis &redis, int n_motors) {
+
+    std::optional<int> signal_data_ready(sw::redis::Redis& redis, int n_motors)
+    {
         auto new_cnt = redis.incr("sync:data:cnt");
-        if (new_cnt == n_motors) {
-            auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
-            auto t = sw::redis::StringView{std::to_string(time)};
+        //std::cout <<"signaldataready " << new_cnt << ", nmotors" << n_motors<< std::endl;
+        if (new_cnt >= n_motors)
+        {
+            auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+            // auto t1 = sw::redis::StringView{std::to_string(time)};
+            auto t = std::to_string(time);
             auto p = redis.pipeline();
-            p.set("sync:data:cnt","0");
-            p.set("sync:data:ready",t);
+            p.set("sync:data:cnt", "0");
+            p.set("sync:data:ready", t);
             p.exec();
             return time;
         }
-        else {
+        else
+        {
             return std::nullopt;
         }
-
     }
 
-    void log(sw::redis::Redis& redis, const std::string& source, const std::string& message, LogLevel level) {
-        std::unordered_map<std::string, std::string> fields =  {
+    void log(sw::redis::Redis& redis, const std::string& source, const std::string& message, LogLevel level)
+    {
+        std::unordered_map<std::string, std::string> fields = {
             {"t", std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())},
             {"src", source},
             {"level", map_log_level(level)},
@@ -145,4 +178,3 @@ namespace exoskeleton::redis_tools {
         redis.xadd(log_key, "*", fields.begin(), fields.end());
     }
 }
-
