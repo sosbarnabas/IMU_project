@@ -128,7 +128,7 @@ namespace exoskeleton::redis_tools
             {"position", std::to_string(data.position)},
             {"torque", std::to_string(data.torque)}
         };
-
+        //qDebug() <<"DEBUG motor addr:" << address <<", cmd_cntr: " << data.cmd_cntr;
         std::string stream_key = "xdata:" + std::to_string(address);
         redis.xadd(stream_key, "*", fields.begin(), fields.end());
     }
@@ -148,9 +148,10 @@ namespace exoskeleton::redis_tools
     std::optional<int> signal_data_ready(sw::redis::Redis& redis, int n_motors)
     {
         auto new_cnt = redis.incr("sync:data:cnt");
-        //std::cout <<"signaldataready " << new_cnt << ", nmotors" << n_motors<< std::endl;
-        if (new_cnt >= n_motors)
+
+        if (new_cnt == n_motors)
         {
+
             auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count();
             // auto t1 = sw::redis::StringView{std::to_string(time)};

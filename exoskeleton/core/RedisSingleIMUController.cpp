@@ -119,9 +119,9 @@ namespace exoskeleton::core
             // Process at most one command per tick from the IMU command list
             const std::string cmd_key = "command:" + device_key_;
             auto raw_command = redis_.lpop(cmd_key);
-            if (!raw_command)
+            if (!raw_command && is_ready_for_measurements())
             {
-                return;
+                onFrameStoreIMU();
             }
 
             try
@@ -187,6 +187,7 @@ namespace exoskeleton::core
 
     void RedisSingleIMUController::processCommand(const std::string& raw_command)
     {
+        if (raw_command == "" || raw_command == " ") return;
         const auto parsed = parseImuCommandRecord(raw_command);
         if (!parsed)
         {
@@ -417,15 +418,19 @@ namespace exoskeleton::core
         }
     }
 
-    void RedisSingleIMUController::onFrameStoreIMU(std::chrono::steady_clock::time_point frame_time)
+    void RedisSingleIMUController::onFrameStoreIMU()
     {
         if (!is_ready_for_measurements())
         {
             std::cout << "IMU not yet connected" << std::endl;
             return;
         }
-        std::cout << "samplequeue size: " << sample_queue_.size() << std::endl;
-        // 1) Drain all available samples from sample_queue_ into buffered_samples_
+        if (sample_queue_.size() == 0) return;
+        // Take "now" once for this call
+        auto now_tp = std::chrono::steady_clock::now();
+        // ----------------------------------------------------
+        // 1) Drain IMU samples from queue into buffered_samples_
+        // ----------------------------------------------------
         {
             ImuSample s;
             while (sample_queue_.try_dequeue(s))
@@ -435,72 +440,178 @@ namespace exoskeleton::core
             }
         }
 
-        // 2) From buffered_samples_, find the last sample with t_host <= frame_time_ns.
-        std::optional<ImuSample> selected;
+        using StreamEntry = std::pair<std::string, std::map<std::string, std::string>>;
+
+        // ----------------------------------------------------
+        // 2) Read only new motor entries from xdata:0 since last call
+        // ----------------------------------------------------
+        static std::string last_id; // last seen motor stream ID
+        std::vector<StreamEntry> entries;
+
+        if (last_id.empty())
         {
+            redis_.xrevrange("xdata:0", "+", "-", std::back_inserter(entries));
+
+            if (!entries.empty())
+            {
+                // newest entry is first for XREVRANGE
+                last_id = entries.front().first;
+                qDebug() << "[INIT] last_id set to:" << last_id.c_str();
+            }
+            else
+            {
+                qDebug() << "[INIT] xdata:0 is empty";
+            }
+            return; // important: we do not process historical data
+        }
+        {
+            std::string end = "+";
+            std::string start = "(" + last_id; // IDs strictly greater than last_id
+
+            entries.clear();
+            redis_.xrevrange("xdata:0", end, start, std::back_inserter(entries));
+
+            if (entries.empty())
+            {
+                return;
+            }
+        }
+
+
+        // ----------------------------------------------------
+        // Helper: take one IMU sample for a given motor time.
+        // Drops old IMU samples so we use the closest (latest) IMU in the past.
+        // ----------------------------------------------------
+        auto take_imu_for_motor =
+            [this](std::chrono::steady_clock::time_point motor_tp) -> std::optional<ImuSample>
+        {
+            //using namespace std::chrono;
             std::lock_guard<std::mutex> lock(buffered_samples_mutex_);
 
-            // buffered_samples_ is assumed to be time-ordered (oldest at front).
-            while (!buffered_samples_.empty())
+            if (buffered_samples_.empty())
             {
-                const ImuSample& front = buffered_samples_.front();
+                return std::nullopt;
+            }
 
-                if (front.t_host <= frame_time)
+            // Drop oldest IMU samples as long as there is a newer one that is still <= motor time.
+            // This keeps the most recent IMU sample that is not later than the motor sample.
+            while (buffered_samples_.size() >= 2)
+            {
+                const ImuSample& first = buffered_samples_[0];
+                const ImuSample& second = buffered_samples_[1];
+
+                if (second.t_host <= motor_tp)
                 {
-                    // This sample is not newer than the frame time: keep it as candidate
-                    selected = front;
+                    // second is still in the past relative to motor -> first is older and can be dropped
                     buffered_samples_.pop_front();
                 }
                 else
                 {
-                    // The front sample is already in the future relative to this frame.
-                    // Stop here; it (and anything after it) will be used for later frames.
                     break;
                 }
             }
-        }
 
-        if (!selected)
+            // Now front() is the IMU sample we use (closest in time on the past side in most cases).
+            ImuSample chosen = buffered_samples_.front();
+            buffered_samples_.pop_front(); // consume this IMU sample
+
+            return chosen;
+        };
+
+        static std::optional<ImuSample> last_used_imu; // fallback if buffer is empty
+        std::size_t motor_processed = 0;
+        std::size_t imu_published   = 0;
+        // ----------------------------------------------------
+        // 3) Process motor entries in chronological order (oldest -> newest)
+        // ----------------------------------------------------
+        //using namespace std::chrono;
+
+        for (auto it = entries.rbegin(); it != entries.rend(); ++it)
         {
-            // No IMU sample <= frame_time_ns yet; skip this frame.
-            // (Optionally you could reuse last selected or handle differently.)
-            return;
+            const auto& id = it->first;
+            const auto& fields = it->second;
+
+            auto it_t = fields.find("t");
+            if (it_t == fields.end())
+            {
+                qDebug() << "Motor sample id:" << id.c_str() << " (no 't' field)";
+                continue;
+            }
+
+            std::int64_t motor_t_raw = 0;
+            try
+            {
+                motor_t_raw = std::stoll(it_t->second);
+            }
+            catch (...)
+            {
+                qDebug() << "Motor sample id:" << id.c_str() << " (invalid 't')";
+                continue;
+            }
+
+            // Motor timestamp as steady_clock::time_point (same base as IMU)
+            std::chrono::steady_clock::time_point motor_tp{
+                std::chrono::nanoseconds(motor_t_raw)
+            };
+
+            auto imu_opt = take_imu_for_motor(motor_tp);
+            if (!imu_opt)
+            {
+                // No fresh IMU available; optionally reuse last_used_imu
+                if (!last_used_imu)
+                {
+                    qDebug() << "Motor sample id:" << id.c_str()
+                        << " t:" << QString::fromStdString(it_t->second)
+                        << " (no IMU available)";
+                    continue;
+                }
+                imu_opt = last_used_imu;
+            }
+
+            ImuSample sample = *imu_opt;
+            last_used_imu = sample;
+
+            ++motor_processed;
+
+            // Build IMU record for Redis
+            const std::string key = std::string("xdata:") + device_key_;
+
+            std::vector<std::pair<std::string, std::string>> redisfields;
+            auto imu_t_ns =
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    sample.t_host.time_since_epoch()).count();
+
+            redisfields.emplace_back("t_ns",       std::to_string(imu_t_ns));
+            redisfields.emplace_back("seq",        std::to_string(sample.seq));
+            redisfields.emplace_back("imu_id",     std::to_string(sample.imu_id));
+            redisfields.emplace_back("euler_roll", std::to_string(sample.euler.at(0)));
+            redisfields.emplace_back("euler_pitch",std::to_string(sample.euler.at(1)));
+            redisfields.emplace_back("euler_yaw",  std::to_string(sample.euler.at(2)));
+            redisfields.emplace_back("fifo_size",  std::to_string(sample.fifosize));
+            redisfields.emplace_back("fifo_mult",  std::to_string(sample.fifomult));
+
+            std::uint8_t flags = 0;
+            if (sample.fifo_overflow)  flags |= 0x01;
+            if (sample.fifo_underflow) flags |= 0x02;
+            if (sample.mag_ok)         flags |= 0x04;
+            redisfields.emplace_back("flags", std::to_string(flags));
+
+            try
+            {
+                std::lock_guard<std::mutex> lock(redis_mutex_);
+                redis_.xadd(key, "*", redisfields.begin(), redisfields.end());
+                ++imu_published;
+            }
+            catch (const std::exception& e)
+            {
+                std::cerr << "[IMUController] Error publishing IMU sample: " << e.what() << "\n";
+            }
         }
+        // Update last_id to newest motor entry we just processed
+        last_id = entries.front().first;
 
-        // 3) Publish the selected sample to Redis stream as one IMU record for this frame.
-        const ImuSample& sample = *selected;
-
-        const std::string key = std::string("xdata:") + device_key_;
-
-        std::vector<std::pair<std::string, std::string>> fields;
-        // Use sample.t_host as timestamp (already computed in FIFO parser using ODR + read time).
-        fields.emplace_back("t_ns", std::to_string(
-                                duration_cast<std::chrono::nanoseconds>(
-                                    sample.t_host.time_since_epoch()).count()));
-
-        fields.emplace_back("seq", std::to_string(sample.seq));
-        fields.emplace_back("imu_id", std::to_string(sample.imu_id));
-        fields.emplace_back("euler_roll", std::to_string(sample.euler.at(0)));
-        fields.emplace_back("euler_pitch", std::to_string(sample.euler.at(1)));
-        fields.emplace_back("euler_yaw", std::to_string(sample.euler.at(2)));
-        fields.emplace_back("fifo_size", std::to_string(sample.fifosize));
-        fields.emplace_back("fifo_mult", std::to_string(sample.fifomult));
-
-        std::uint8_t flags = 0;
-        if (sample.fifo_overflow) flags |= 0x01;
-        if (sample.fifo_underflow) flags |= 0x02;
-        if (sample.mag_ok) flags |= 0x04;
-        fields.emplace_back("flags", std::to_string(flags));
-
-        try
-        {
-            std::lock_guard<std::mutex> lock(redis_mutex_);
-            redis_.xadd(key, "*", fields.begin(), fields.end());
-        }
-        catch (const std::exception& e)
-        {
-            std::cerr << "[IMUController] Error publishing IMU frame sample: " << e.what() << "\n";
-        }
+        qDebug() << "New motor samples:" << motor_processed
+                 << "IMU samples written:" << imu_published;
     }
 
     bool RedisSingleIMUController::is_ready_for_measurements() const
@@ -551,21 +662,20 @@ namespace exoskeleton::core
                 std::int64_t frame_time_ns = 0;
                 try
                 {
-
                     frame_time_ns = std::stoll(*t_str);
 
-                   // frame_time_ns = std::stoull(trimmed);
+                    // frame_time_ns = std::stoull(trimmed);
                 }
-                catch (std::exception &e)
+                catch (std::exception& e)
                 {
-                    std::cerr <<"HELO: " << e.what() << std::endl;
+                    std::cerr << "HELO: " << e.what() << std::endl;
                     // Malformed timestamp; skip this event
                     return;
                 }
                 // Convert int64 ns → steady_clock::time_point
                 std::chrono::steady_clock::time_point frame_time{std::chrono::nanoseconds{frame_time_ns}};
                 // Handle this frame: select best IMU sample <= frame_time_ns and publish
-                this->onFrameStoreIMU(frame_time);
+                //this->onFrameStoreIMU(frame_time);
             });
 
             // Main event loop: block on keyspace notifications

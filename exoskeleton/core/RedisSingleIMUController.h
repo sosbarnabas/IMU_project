@@ -4,6 +4,7 @@
 #include <mutex>
 #include <chrono>
 #include <thread>
+#include <QDebug>
 #include <sw/redis++/redis++.h>
 #include "../IMU/ICM/icm20948.h"
 #include "../IMU/MCP/mcp2221.h"
@@ -95,7 +96,7 @@ namespace exoskeleton::core
          * Also applies zeroing if enabled.
          */
         void measureAndStore();
-        void onFrameStoreIMU(std::chrono::steady_clock::time_point frame_time);
+        void onFrameStoreIMU();
 
         // Start/stop the consumer thread that drains `sample_queue_` and
         // publishes samples to Redis. The producer is started by calling

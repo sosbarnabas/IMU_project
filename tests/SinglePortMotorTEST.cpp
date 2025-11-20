@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
         }));
 
         for (const auto &props: motor_props) {
-            QThread *controller_thread = QThread::create([&redis, props, n_motors]() {
+            QThread *controller_thread = QThread::create([&redis, props, &n_motors]() {
                 try {
                     exoskeleton::core::RedisSinglePortController controller(props, n_motors);
                     controller.loop();

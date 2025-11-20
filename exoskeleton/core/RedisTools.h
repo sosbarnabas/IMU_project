@@ -53,4 +53,6 @@ namespace exoskeleton::redis_tools {
         const std::string& message,
         LogLevel level = LogLevel::info);
 
+
+
 }
