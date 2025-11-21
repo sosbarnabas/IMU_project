@@ -577,9 +577,16 @@ namespace exoskeleton::core
             const std::string key = std::string("xdata:") + device_key_;
 
             std::vector<std::pair<std::string, std::string>> redisfields;
+
+
             auto imu_t_ns =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    sample.t_host.time_since_epoch()).count();
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                sample.t_host.time_since_epoch()).count();
+
+            // integer nanosecond diff, positive if motor is later than IMU
+            std::int64_t diff_ns = motor_t_raw - imu_t_ns;
+            // convert to milliseconds (truncate toward zero)
+            std::int64_t diff_ms = diff_ns / 1000000;
 
             redisfields.emplace_back("t_ns",       std::to_string(imu_t_ns));
             redisfields.emplace_back("seq",        std::to_string(sample.seq));
@@ -587,6 +594,8 @@ namespace exoskeleton::core
             redisfields.emplace_back("euler_roll", std::to_string(sample.euler.at(0)));
             redisfields.emplace_back("euler_pitch",std::to_string(sample.euler.at(1)));
             redisfields.emplace_back("euler_yaw",  std::to_string(sample.euler.at(2)));
+            redisfields.emplace_back("motor_sample_time_diff",
+                                 std::to_string(diff_ms));
             redisfields.emplace_back("fifo_size",  std::to_string(sample.fifosize));
             redisfields.emplace_back("fifo_mult",  std::to_string(sample.fifomult));
 
@@ -610,8 +619,7 @@ namespace exoskeleton::core
         // Update last_id to newest motor entry we just processed
         last_id = entries.front().first;
 
-        qDebug() << "New motor samples:" << motor_processed
-                 << "IMU samples written:" << imu_published;
+
     }
 
     bool RedisSingleIMUController::is_ready_for_measurements() const
