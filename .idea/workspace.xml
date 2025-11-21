@@ -4,8 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="BackendCodeEditorMiscSettings">
-    <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="3" type="long" />
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
     <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
   </component>
   <component name="CMakePresetLoader">{
@@ -19,33 +19,28 @@
   </component>
   <component name="CMakeRunConfigurationManager">
     <generated>
-      <config projectName="IMU_project" targetName="IMU_project" />
+      <config projectName="ExoGUI" targetName="TelemetrySimulator" />
+      <config projectName="ExoGUI" targetName="ExoGUI" />
     </generated>
   </component>
   <component name="CMakeSettings">
     <configurations>
-      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" />
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="/vcpkg.cmake -DQt6_DIR=D:/Samu/Qt_m/6.9.3/msvc2022_64/lib/cmake/Qt6 -DCMAKE_TOOLCHAIN_FILE=C:\Users\Robotlab\.vcpkg-clion\vcpkg_gui\scripts\buildsystems\vcpkg.cmake" />
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="016eb6ee-da6f-431a-956a-944c045d70d1" name="Changes" comment="updated with core">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="055e3f73-faf5-498d-aa55-c08b49adc88a" name="Changes" comment="hiba javitasok">
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Data/calibration/biases.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Data/calibration/biases.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ICM/i_c_m20948_driver.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ICM/icm20948.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/ICM/icm20948.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ICM/icm20948.h" beforeDir="false" afterPath="$PROJECT_DIR$/ICM/icm20948.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/sample.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ImuSample.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main_redis.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/main_redis.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sensorfusion/Madgwick.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/sensorfusion/Madgwick.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Core/Redis/Client/RedisTelemetryClient.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Redis/Client/RedisTelemetryClient.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Pages/HomePage/HomePage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Pages/HomePage/HomePage.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Widgets/ImuWidget/ImuWidget.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Widgets/ImuWidget/ImuWidget.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Widgets/ImuWidget/ImuWidget.h" beforeDir="false" afterPath="$PROJECT_DIR$/Widgets/ImuWidget/ImuWidget.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="ChangesViewManager" show_ignored="true" />
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
@@ -53,196 +48,126 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory">{
+  <component name="GitLabMergeRequestFiltersHistory">{
   &quot;lastFilter&quot;: {
-    &quot;state&quot;: &quot;OPEN&quot;,
-    &quot;assignee&quot;: &quot;sosbarnabas&quot;
+    &quot;state&quot;: &quot;OPENED&quot;,
+    &quot;assignee&quot;: {
+      &quot;type&quot;: &quot;org.jetbrains.plugins.gitlab.mergerequest.ui.filters.GitLabMergeRequestsFiltersValue.MergeRequestsMemberFilterValue.MergeRequestsAssigneeFilterValue&quot;,
+      &quot;username&quot;: &quot;orban.samuel.antal&quot;,
+      &quot;fullname&quot;: &quot;Orbán Sámuel Antal&quot;
+    }
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
+  <component name="GitLabMergeRequestsSettings">{
   &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/sosbarnabas/IMU_project.git&quot;,
-    &quot;accountId&quot;: &quot;4c445f3e-57f0-4d4c-a136-d09dd9f43c74&quot;
+    &quot;first&quot;: &quot;https://dev.itk.ppke.hu/exoskeleton/exoskeleton-desktop.git&quot;,
+    &quot;second&quot;: &quot;9975ebca-57ec-41be-9b49-3ad7c0b0edad&quot;
   }
 }</component>
   <component name="HighlightingSettingsPerFile">
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/ICM/icm20948.cpp" root0="FORCE_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/ICM/icm20948.cpp" root0="SKIP_HIGHLIGHTING" />
-  </component>
-  <component name="ProblemsViewState">
-    <option name="selectedTabId" value="CurrentFile" />
-    <option name="showPreview" value="true" />
   </component>
   <component name="ProjectApplicationVersion">
     <option name="ide" value="CLion" />
     <option name="majorVersion" value="2025" />
-    <option name="minorVersion" value="1.2" />
+    <option name="minorVersion" value="2.2" />
     <option name="productBranch" value="Classic" />
   </component>
   <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 4
+  &quot;associatedIndex&quot;: 6
 }</component>
-  <component name="ProjectId" id="335OT4ZkB0DgS3MnE7Rg99IScmX" />
+  <component name="ProjectId" id="348n589SW1AvjKgPGn9wzCbomq6" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
-    &quot;CMake Application.IMU_project.executor&quot;: &quot;Run&quot;,
+    &quot;CMake Application.ExoGUI.executor&quot;: &quot;Run&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.west.config.association.type.startup.service&quot;: &quot;true&quot;,
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;AI-help&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/lib&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;orbsa&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;onboarding.tips.debug.path&quot;: &quot;C:/Users/sosba/Documents/VII. felev anyagok/Szakdolgozat/IMU/IMU_project/main.cpp&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;CMakeSettings&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\sosba\Documents\VII. felev anyagok\Szakdolgozat\IMU\IMU_project\lib" />
-      <recent name="C:\Users\sosba\Documents\VII. felev anyagok\Szakdolgozat\IMU\IMU_project" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\sosba\Documents\VII. felev anyagok\Szakdolgozat\IMU\IMU_project\MCP" />
-      <recent name="C:\Users\sosba\Documents\VII. felev anyagok\Szakdolgozat\IMU\IMU_project" />
-    </key>
-  </component>
-  <component name="RunManager">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="IMU_project" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="IMU_project" TARGET_NAME="IMU_project" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="IMU_project" RUN_TARGET_NAME="IMU_project">
+  <component name="RunManager" selected="CMake Application.ExoGUI">
+    <configuration name="ExoGUI" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ExoGUI" TARGET_NAME="ExoGUI" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ExoGUI" RUN_TARGET_NAME="ExoGUI">
+      <envs>
+        <env name="PATH" value="D:\Samu\Qt_m\6.9.3\msvc2022_64\bin" />
+      </envs>
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TelemetrySimulator" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ExoGUI" TARGET_NAME="TelemetrySimulator" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ExoGUI" RUN_TARGET_NAME="TelemetrySimulator">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="CMake Application.ExoGUI" />
+      <item itemvalue="CMake Application.TelemetrySimulator" />
+    </list>
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="016eb6ee-da6f-431a-956a-944c045d70d1" name="Changes" comment="" />
-      <created>1758603472764</created>
+      <changelist id="055e3f73-faf5-498d-aa55-c08b49adc88a" name="Changes" comment="" />
+      <created>1760603880378</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1758603472764</updated>
-      <workItem from="1758603475285" duration="14009000" />
-      <workItem from="1758620767408" duration="1382000" />
-      <workItem from="1758624728656" duration="179000" />
-      <workItem from="1758634064328" duration="6920000" />
-      <workItem from="1758658796824" duration="34000" />
-      <workItem from="1758659644174" duration="1445000" />
-      <workItem from="1758661772285" duration="919000" />
-      <workItem from="1758662745249" duration="1523000" />
-      <workItem from="1758689067657" duration="4625000" />
-      <workItem from="1758694218561" duration="893000" />
-      <workItem from="1758697727104" duration="785000" />
-      <workItem from="1758702073134" duration="1859000" />
-      <workItem from="1758705868866" duration="2823000" />
-      <workItem from="1758719599674" duration="42814000" />
-      <workItem from="1758908420716" duration="630000" />
-      <workItem from="1758909737557" duration="90767000" />
-      <workItem from="1759383047311" duration="28152000" />
-      <workItem from="1759660408054" duration="39571000" />
-      <workItem from="1759828848693" duration="6621000" />
-      <workItem from="1759901115275" duration="56291000" />
-      <workItem from="1760420077400" duration="4832000" />
-      <workItem from="1760618611775" duration="3484000" />
-      <workItem from="1761041887979" duration="2751000" />
-      <workItem from="1761571519387" duration="27000" />
-      <workItem from="1761599072792" duration="654000" />
-      <workItem from="1761865382694" duration="99000" />
-      <workItem from="1761896641916" duration="6498000" />
-      <workItem from="1761908163317" duration="3304000" />
-      <workItem from="1762110722596" duration="7666000" />
-      <workItem from="1762269906265" duration="8095000" />
-      <workItem from="1762545955519" duration="2578000" />
-      <workItem from="1762587697478" duration="1838000" />
-      <workItem from="1762608908756" duration="69976000" />
+      <updated>1760603880378</updated>
+      <workItem from="1760603881578" duration="4106000" />
+      <workItem from="1760608968538" duration="1605000" />
+      <workItem from="1760963746679" duration="2469000" />
+      <workItem from="1761045087557" duration="3071000" />
+      <workItem from="1761910406600" duration="36000" />
+      <workItem from="1761910545874" duration="155000" />
+      <workItem from="1762861960298" duration="1913000" />
+      <workItem from="1763126358294" duration="667000" />
+      <workItem from="1763127051340" duration="4714000" />
+      <workItem from="1763453520872" duration="5421000" />
+      <workItem from="1763474812025" duration="980000" />
+      <workItem from="1763535893292" duration="5816000" />
+      <workItem from="1763621454053" duration="598000" />
+      <workItem from="1763622129819" duration="16384000" />
+      <workItem from="1763709718949" duration="3236000" />
     </task>
-    <task id="LOCAL-00001" summary="Initial commit">
+    <task id="LOCAL-00001" summary="hiba javitasok">
       <option name="closed" value="true" />
-      <created>1762755971144</created>
+      <created>1761047521592</created>
       <option name="number" value="00001" />
       <option name="presentableId" value="LOCAL-00001" />
       <option name="project" value="LOCAL" />
-      <updated>1762755971145</updated>
+      <updated>1761047521592</updated>
     </task>
-    <task id="LOCAL-00002" summary="Producerloop finished">
+    <task id="LOCAL-00002" summary="hiba javitasok">
       <option name="closed" value="true" />
-      <created>1762767585309</created>
+      <created>1761048165097</created>
       <option name="number" value="00002" />
       <option name="presentableId" value="LOCAL-00002" />
       <option name="project" value="LOCAL" />
-      <updated>1762767585309</updated>
+      <updated>1761048165097</updated>
     </task>
-    <task id="LOCAL-00003" summary="updated overflow logic">
-      <option name="closed" value="true" />
-      <created>1762770274975</created>
-      <option name="number" value="00003" />
-      <option name="presentableId" value="LOCAL-00003" />
-      <option name="project" value="LOCAL" />
-      <updated>1762770274975</updated>
-    </task>
-    <task id="LOCAL-00004" summary="updated with core">
-      <option name="closed" value="true" />
-      <created>1762776733346</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1762776733346</updated>
-    </task>
-    <option name="localTasksCounter" value="5" />
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -253,38 +178,28 @@
     <isAutomaticFoundErrors value="true" />
     <isAutomaticReloadCMake value="true" />
   </component>
-  <component name="Vcs.Log.Tabs.Properties">
-    <option name="TAB_STATES">
-      <map>
-        <entry key="MAIN">
-          <value>
-            <State>
-              <option name="CUSTOM_BOOLEAN_PROPERTIES">
-                <map>
-                  <entry key="Show.Git.Branches" value="false" />
-                </map>
-              </option>
-            </State>
-          </value>
-        </entry>
-      </map>
-    </option>
-  </component>
   <component name="VcsManagerConfiguration">
-    <ignored-roots>
-      <path value="$PROJECT_DIR$" />
-    </ignored-roots>
-    <MESSAGE value="Initial commit" />
-    <MESSAGE value="Producerloop finished" />
-    <MESSAGE value="updated overflow logic" />
-    <MESSAGE value="updated with core" />
-    <option name="LAST_COMMIT_MESSAGE" value="updated with core" />
+    <MESSAGE value="hiba javitasok" />
+    <option name="LAST_COMMIT_MESSAGE" value="hiba javitasok" />
   </component>
   <component name="XDebuggerManager">
-    <watches-manager>
-      <configuration name="CMakeRunConfiguration">
-        <watch expression="emptyCount" />
-      </configuration>
-    </watches-manager>
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/Widgets/Buttons/MotorDataLogger.h</url>
+          <line>2</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/Widgets/ImuWidget/ImuWidget.cpp</url>
+          <line>229</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>
