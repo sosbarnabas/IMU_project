@@ -353,6 +353,10 @@ namespace exoskeleton::core
                 startConsumer(); // now starts the sync:data:ready subscriber
                 sampling_active_ = true;
                 sample_sequence_ = 0;
+                // After IMU initializes and imu_id = 0
+                redis_.hset("run:addrs", "imu"+std::to_string(imu_id_),std::to_string(imu_id_)+"|");
+
+
                 publishResponse("start", "OK:sampling_started");
                 log("INFO", "IMU sampling started at 75Hz");
                 std::cout << prefix << "Sampling started\n";
@@ -362,6 +366,8 @@ namespace exoskeleton::core
                 sampling_active_ = false;
                 icm20948->stop();
                 stopConsumer(); // Stop the consumer thread
+                // After IMU initializes and imu_id = 0
+                redis_.hdel("run:addrs", "imu"+std::to_string(imu_id_));
                 publishResponse("stop", "OK:sampling_stopped");
                 log("INFO", "IMU sampling stopped");
                 std::cout << prefix << "Sampling stopped\n";
