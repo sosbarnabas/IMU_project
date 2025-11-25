@@ -36,6 +36,10 @@ add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
         exoskeleton/settings/Settings.cpp
         exoskeleton/settings/UserParams.cpp
         exoskeleton/core/RedisTools.cpp
+
+        #Logging
+        exoskeleton/core/DataLogger.cpp
+
         exoskeleton/multiport/RedisSingleMotorController.cpp
         exoskeleton/motor/motor.cpp
         exoskeleton/multiport/MultiPortExoMotors.cpp
@@ -49,6 +53,7 @@ add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
         exoskeleton/IMU/ICM/icm20948.cpp
         exoskeleton/IMU/MCP/mcp2221.cpp
         exoskeleton/core/RedisSingleIMUController.cpp
+
 )
 
 add_executable(READTEST tests/read_test.cpp

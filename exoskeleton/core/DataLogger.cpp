@@ -6,8 +6,7 @@
 
 namespace exoskeleton::core
 {
-
-    DataLogger::DataLogger(sw::redis::Redis &redis, const std::string &output_path)
+    DataLogger::DataLogger(sw::redis::Redis& redis, const std::string& output_path)
         : redis_{redis}, output_path_{output_path}, start_id_{}, end_id_{}, record_count_{0}, is_logging_{false}
     {
     }
@@ -17,7 +16,10 @@ namespace exoskeleton::core
         try
         {
             // Capture the current latest stream ID from xdata:0 (motor 0's telemetry)
-            auto entries = redis_.xrevrange("xdata:0", "+", "-", 1);
+            using StreamEntry = std::pair<std::string, std::map<std::string, std::string>>;
+                        // Capture the end stream ID
+            std::vector<StreamEntry> entries;
+            redis_.xrevrange("xdata:0", "+", "-", 1, std::back_inserter(entries));
             if (!entries.empty())
             {
                 start_id_ = entries.front().first;
@@ -29,9 +31,10 @@ namespace exoskeleton::core
             is_logging_ = true;
             redis_tools::log(redis_, "DataLogger", "Logging started from ID: " + start_id_);
         }
-        catch (const std::exception &e)
+        catch (const std::exception& e)
         {
-            redis_tools::log(redis_, "DataLogger", "Error in startLogging: " + std::string(e.what()), redis_tools::LogLevel::error);
+            redis_tools::log(redis_, "DataLogger", "Error in startLogging: " + std::string(e.what()),
+                             redis_tools::LogLevel::error);
         }
     }
 
@@ -41,8 +44,13 @@ namespace exoskeleton::core
         {
             is_logging_ = false;
 
+            // Capture the current latest stream ID from xdata:0 (motor 0's telemetry)
+            using StreamEntry = std::pair<std::string, std::map<std::string, std::string>>;
             // Capture the end stream ID
-            auto entries = redis_.xrevrange("xdata:0", "+", "-", 1);
+            std::vector<StreamEntry> entries;
+
+            // Capture the end stream ID
+            redis_.xrevrange("xdata:0", "+", "-", std::back_inserter(entries));
             if (!entries.empty())
             {
                 end_id_ = entries.front().first;
@@ -64,13 +72,14 @@ namespace exoskeleton::core
 
             redis_tools::log(redis_, "DataLogger",
                              "Logging stopped. Records: " + std::to_string(record_count_) +
-                                 ", CSV written to: " + output_path_);
+                             ", CSV written to: " + output_path_);
 
             return record_count_;
         }
-        catch (const std::exception &e)
+        catch (const std::exception& e)
         {
-            redis_tools::log(redis_, "DataLogger", "Error in stopLogging: " + std::string(e.what()), redis_tools::LogLevel::error);
+            redis_tools::log(redis_, "DataLogger", "Error in stopLogging: " + std::string(e.what()),
+                             redis_tools::LogLevel::error);
             return 0;
         }
     }
@@ -79,13 +88,18 @@ namespace exoskeleton::core
     {
         try
         {
+            // Capture the current latest stream ID from xdata:0 (motor 0's telemetry)
+            using StreamEntry = std::pair<std::string, std::map<std::string, std::string>>;
+            // Capture the end stream ID
+            std::vector<StreamEntry> entries;
             // Count records in xdata:0 between start_id (exclusive) and end_id (inclusive)
-            auto entries = redis_.xrange("xdata:0", "(" + start_id_, end_id_);
+            redis_.xrange("xdata:0", "(" + start_id_, end_id_, std::back_inserter(entries));
             return entries.size();
         }
-        catch (const std::exception &e)
+        catch (const std::exception& e)
         {
-            redis_tools::log(redis_, "DataLogger", "Error calculating record count: " + std::string(e.what()), redis_tools::LogLevel::error);
+            redis_tools::log(redis_, "DataLogger", "Error calculating record count: " + std::string(e.what()),
+                             redis_tools::LogLevel::error);
             return 0;
         }
     }
@@ -98,16 +112,21 @@ namespace exoskeleton::core
             for (int i = 0; i < 7; ++i)
             {
                 std::string key = "xdata:" + std::to_string(i);
-                auto entries = redis_.xrevrange(key, "+", "-", 1);
+                // Capture the current latest stream ID from xdata:0 (motor 0's telemetry)
+                using StreamEntry = std::pair<std::string, std::map<std::string, std::string>>;
+                // Capture the end stream ID
+                std::vector<StreamEntry> entries;
+                redis_.xrevrange(key, "+", "-", 1, std::back_inserter(entries));
                 if (!entries.empty())
                 {
                     active_motors.push_back(i);
                 }
             }
         }
-        catch (const std::exception &e)
+        catch (const std::exception& e)
         {
-            redis_tools::log(redis_, "DataLogger", "Error detecting motors: " + std::string(e.what()), redis_tools::LogLevel::error);
+            redis_tools::log(redis_, "DataLogger", "Error detecting motors: " + std::string(e.what()),
+                             redis_tools::LogLevel::error);
         }
         return active_motors;
     }
@@ -116,38 +135,48 @@ namespace exoskeleton::core
     {
         try
         {
-            auto entries = redis_.xrevrange("xdata:imu:0", "+", "-", 1);
+            // Capture the current latest stream ID from xdata:0 (motor 0's telemetry)
+            using StreamEntry = std::pair<std::string, std::map<std::string, std::string>>;
+            // Capture the end stream ID
+            std::vector<StreamEntry> entries;
+            redis_.xrevrange("xdata:imu:0", "+", "-", 1, std::back_inserter(entries));
             return !entries.empty();
         }
-        catch (const std::exception &e)
+        catch (const std::exception& e)
         {
-            redis_tools::log(redis_, "DataLogger", "Error checking IMU: " + std::string(e.what()), redis_tools::LogLevel::error);
+            redis_tools::log(redis_, "DataLogger", "Error checking IMU: " + std::string(e.what()),
+                             redis_tools::LogLevel::error);
             return false;
         }
     }
 
     std::map<std::string, std::vector<std::map<std::string, std::string>>> DataLogger::readStreamRange(
-        const std::string &stream_key,
-        const std::string &start_id,
-        const std::string &end_id)
+        const std::string& stream_key,
+        const std::string& start_id,
+        const std::string& end_id)
     {
         std::map<std::string, std::vector<std::map<std::string, std::string>>> result;
         try
         {
-            auto entries = redis_.xrange(stream_key, "(" + start_id, end_id);
-            for (const auto &entry : entries)
+            // Capture the current latest stream ID from xdata:0 (motor 0's telemetry)
+            using StreamEntry = std::pair<std::string, std::map<std::string, std::string>>;
+            // Capture the end stream ID
+            std::vector<StreamEntry> entries;
+            redis_.xrange(stream_key, "(" + start_id, end_id, std::back_inserter(entries));
+            for (const auto& entry : entries)
             {
                 result[stream_key].push_back(entry.second);
             }
         }
-        catch (const std::exception &e)
+        catch (const std::exception& e)
         {
-            redis_tools::log(redis_, "DataLogger", "Error reading stream " + stream_key + ": " + std::string(e.what()), redis_tools::LogLevel::error);
+            redis_tools::log(redis_, "DataLogger", "Error reading stream " + stream_key + ": " + std::string(e.what()),
+                             redis_tools::LogLevel::error);
         }
         return result;
     }
 
-    void DataLogger::writeToCSV(const std::vector<int> &active_motors, bool imu_active)
+    void DataLogger::writeToCSV(const std::vector<int>& active_motors, bool imu_active)
     {
         try
         {
@@ -163,24 +192,24 @@ namespace exoskeleton::core
             // Add motor columns
             for (int motor_id : active_motors)
             {
-                header += ",motor_" + std::to_string(motor_id) + "_enabled";
+                //header += ",motor_" + std::to_string(motor_id) + "_enabled";
                 header += ",motor_" + std::to_string(motor_id) + "_position";
-                header += ",motor_" + std::to_string(motor_id) + "_torque";
-                header += ",motor_" + std::to_string(motor_id) + "_cmd_cntr";
-                header += ",motor_" + std::to_string(motor_id) + "_slot_idx";
+               // header += ",motor_" + std::to_string(motor_id) + "_torque";
+               // header += ",motor_" + std::to_string(motor_id) + "_cmd_cntr";
+               // header += ",motor_" + std::to_string(motor_id) + "_slot_idx";
                 header += ",motor_" + std::to_string(motor_id) + "_t";
-                header += ",motor_" + std::to_string(motor_id) + "_n_tries";
+               // header += ",motor_" + std::to_string(motor_id) + "_n_tries";
             }
 
             // Add IMU columns
             if (imu_active)
             {
                 header += ",imu_t_ns,imu_seq,imu_imu_id";
-                header += ",imu_accel_x,imu_accel_y,imu_accel_z";
-                header += ",imu_gyro_x,imu_gyro_y,imu_gyro_z";
-                header += ",imu_mag_x,imu_mag_y,imu_mag_z";
+                //header += ",imu_accel_x,imu_accel_y,imu_accel_z";
+               // header += ",imu_gyro_x,imu_gyro_y,imu_gyro_z";
+               // header += ",imu_mag_x,imu_mag_y,imu_mag_z";
                 header += ",imu_euler_roll,imu_euler_pitch,imu_euler_yaw";
-                header += ",imu_fifo_size,imu_fifo_mult,imu_flags";
+               // header += ",imu_fifo_size,imu_fifo_mult,imu_flags";
             }
 
             csv_file << header << "\n";
@@ -204,7 +233,7 @@ namespace exoskeleton::core
 
             // Determine max rows
             size_t max_rows = 0;
-            for (const auto &[motor_id, data] : motor_data)
+            for (const auto& [motor_id, data] : motor_data)
             {
                 max_rows = std::max(max_rows, data.size());
             }
@@ -219,7 +248,7 @@ namespace exoskeleton::core
                 if (row < motor_data.begin()->second.size())
                 {
                     // Get timestamp from first motor's data
-                    auto &first_motor_data = motor_data.begin()->second[row];
+                    auto& first_motor_data = motor_data.begin()->second[row];
                     if (first_motor_data.count("timestamp"))
                     {
                         line << first_motor_data["timestamp"];
@@ -246,14 +275,14 @@ namespace exoskeleton::core
                     line << ",";
                     if (row < motor_data[motor_id].size())
                     {
-                        auto &data = motor_data[motor_id][row];
-                        line << (data.count("enabled") ? data["enabled"] : "");
+                        auto& data = motor_data[motor_id][row];
+                       // line << (data.count("enabled") ? data["enabled"] : "");
                         line << "," << (data.count("position") ? data["position"] : "");
-                        line << "," << (data.count("torque") ? data["torque"] : "");
-                        line << "," << (data.count("cmd_cntr") ? data["cmd_cntr"] : "");
-                        line << "," << (data.count("slot_idx") ? data["slot_idx"] : "");
+                       // line << "," << (data.count("torque") ? data["torque"] : "");
+                        //line << "," << (data.count("cmd_cntr") ? data["cmd_cntr"] : "");
+                       // line << "," << (data.count("slot_idx") ? data["slot_idx"] : "");
                         line << "," << (data.count("t") ? data["t"] : "");
-                        line << "," << (data.count("n_tries") ? data["n_tries"] : "");
+                      //  line << "," << (data.count("n_tries") ? data["n_tries"] : "");
                     }
                     else
                     {
@@ -267,25 +296,13 @@ namespace exoskeleton::core
                     line << ",";
                     if (row < imu_data.size())
                     {
-                        auto &data = imu_data[row];
+                        auto& data = imu_data[row];
                         line << (data.count("t_ns") ? data["t_ns"] : "");
                         line << "," << (data.count("seq") ? data["seq"] : "");
                         line << "," << (data.count("imu_id") ? data["imu_id"] : "");
-                        line << "," << (data.count("accel_x") ? data["accel_x"] : "");
-                        line << "," << (data.count("accel_y") ? data["accel_y"] : "");
-                        line << "," << (data.count("accel_z") ? data["accel_z"] : "");
-                        line << "," << (data.count("gyro_x") ? data["gyro_x"] : "");
-                        line << "," << (data.count("gyro_y") ? data["gyro_y"] : "");
-                        line << "," << (data.count("gyro_z") ? data["gyro_z"] : "");
-                        line << "," << (data.count("mag_x") ? data["mag_x"] : "");
-                        line << "," << (data.count("mag_y") ? data["mag_y"] : "");
-                        line << "," << (data.count("mag_z") ? data["mag_z"] : "");
                         line << "," << (data.count("euler_roll") ? data["euler_roll"] : "");
                         line << "," << (data.count("euler_pitch") ? data["euler_pitch"] : "");
                         line << "," << (data.count("euler_yaw") ? data["euler_yaw"] : "");
-                        line << "," << (data.count("fifo_size") ? data["fifo_size"] : "");
-                        line << "," << (data.count("fifo_mult") ? data["fifo_mult"] : "");
-                        line << "," << (data.count("flags") ? data["flags"] : "");
                     }
                     else
                     {
@@ -298,10 +315,10 @@ namespace exoskeleton::core
 
             csv_file.close();
         }
-        catch (const std::exception &e)
+        catch (const std::exception& e)
         {
-            redis_tools::log(redis_, "DataLogger", "Error writing CSV: " + std::string(e.what()), redis_tools::LogLevel::error);
+            redis_tools::log(redis_, "DataLogger", "Error writing CSV: " + std::string(e.what()),
+                             redis_tools::LogLevel::error);
         }
     }
-
 } // exoskeleton::core

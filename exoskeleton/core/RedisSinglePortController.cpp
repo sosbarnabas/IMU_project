@@ -153,10 +153,10 @@ namespace exoskeleton::core {
                 }
             } else if (c == "startlogging") {
                 data_logger_->startLogging();
-                response = "OK:logging_started";
+                response = "logging_started";
             } else if (c == "stoplogging") {
                 size_t records = data_logger_->stopLogging();
-                response = "OK:logging_stopped_" + std::to_string(records) + "_records";
+                response = "logging_stopped_" + std::to_string(records) + "_records";
             } else {
                 redis_tools::log(redis_, motor_props_.name, "Unknown command: " + c, redis_tools::LogLevel::error);
             }
