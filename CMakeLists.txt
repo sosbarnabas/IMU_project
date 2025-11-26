@@ -53,6 +53,8 @@ add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
         exoskeleton/IMU/ICM/icm20948.cpp
         exoskeleton/IMU/MCP/mcp2221.cpp
         exoskeleton/core/RedisSingleIMUController.cpp
+        #Control
+        exoskeleton/core/Control.cpp
 
 )
 

@@ -8,7 +8,7 @@
 
 namespace exoskeleton::core
 {
-    using EntryMap    = std::map<std::string, std::string>;
+    using EntryMap = std::map<std::string, std::string>;
     using StreamEntry = std::pair<std::string, EntryMap>;
 
     DataLogger::DataLogger(sw::redis::Redis& redis, const std::string& output_path)
@@ -29,8 +29,8 @@ namespace exoskeleton::core
     void DataLogger::loadRunAddrs()
     {
         active_motors_.clear();
-        imu_active_   = false;
-        imu_id_       = -1;
+        imu_active_ = false;
+        imu_id_ = -1;
         ref_motor_id_ = -1;
         ref_stream_key_.clear();
 
@@ -44,7 +44,7 @@ namespace exoskeleton::core
             for (const auto& kv : run_addrs)
             {
                 const auto& name = kv.first;
-                const auto& val  = kv.second;
+                const auto& val = kv.second;
 
                 // Extract <num> from "<num>|..."
                 auto pipe_pos = val.find('|');
@@ -53,16 +53,20 @@ namespace exoskeleton::core
                                           : val.substr(0, pipe_pos);
 
                 int id = -1;
-                try {
+                try
+                {
                     id = std::stoi(num_str);
-                } catch (...) {
+                }
+                catch (const std::exception& e)
+                {
+
                     continue; // skip malformed entry
                 }
 
                 if (name.find("imu") != std::string::npos)
                 {
                     imu_active_ = true;
-                    imu_id_     = id;
+                    imu_id_ = id;
                 }
                 else
                 {
@@ -91,7 +95,7 @@ namespace exoskeleton::core
             }
             else
             {
-                ref_motor_id_   = -1;
+                ref_motor_id_ = -1;
                 ref_stream_key_ = "";
             }
 
@@ -116,7 +120,7 @@ namespace exoskeleton::core
         }
     }
 
-    void DataLogger::startLogging()
+    void DataLogger::startLogging(std::string path)
     {
         try
         {
@@ -146,13 +150,16 @@ namespace exoskeleton::core
                 start_id_ = "0-0";
             }
 
-            is_logging_  = true;
+            is_logging_ = true;
             record_count_ = 0;
+            output_path_ = path;
 
             redis_tools::log(redis_, "DataLogger",
                              "Logging started from ref stream '" + ref_stream_key_ +
-                             "' at ID: " + start_id_);
+                             "' at ID: " + start_id_ + ", output path: " + output_path_);
+
         }
+
         catch (const std::exception& e)
         {
             redis_tools::log(redis_, "DataLogger",
@@ -230,7 +237,7 @@ namespace exoskeleton::core
                 return 0;
 
             auto data = readStreamRange(ref_stream_key_, start_id_, end_id_);
-            auto it   = data.find(ref_stream_key_);
+            auto it = data.find(ref_stream_key_);
             if (it != data.end())
                 return it->second.size();
 
@@ -322,7 +329,7 @@ namespace exoskeleton::core
             {
                 std::string key = "xdata:" + std::to_string(motor_id);
                 auto stream_data = readStreamRange(key, start_id_, end_id_);
-                auto it          = stream_data.find(key);
+                auto it = stream_data.find(key);
 
                 if (it != stream_data.end())
                 {
@@ -342,8 +349,8 @@ namespace exoskeleton::core
             if (imu_active_ && imu_id_ >= 0)
             {
                 std::string imu_key = "xdata:imu:" + std::to_string(imu_id_);
-                auto stream_data    = readStreamRange(imu_key, start_id_, end_id_);
-                auto it             = stream_data.find(imu_key);
+                auto stream_data = readStreamRange(imu_key, start_id_, end_id_);
+                auto it = stream_data.find(imu_key);
                 if (it != stream_data.end())
                 {
                     imu_data = std::move(it->second);
@@ -409,16 +416,17 @@ namespace exoskeleton::core
                         const auto& data = imu_data[row];
 
                         // imu_id
-                        line << (data.count("imu_id") ? data.at("imu_id")
-                                                      : std::to_string(imu_id_));
+                        line << (data.count("imu_id")
+                                     ? data.at("imu_id")
+                                     : std::to_string(imu_id_));
 
                         // timestamp
                         line << "," << (data.count("t_ns") ? data.at("t_ns") : "");
 
                         // euler angles
-                        line << "," << (data.count("euler_roll")  ? data.at("euler_roll")  : "");
+                        line << "," << (data.count("euler_roll") ? data.at("euler_roll") : "");
                         line << "," << (data.count("euler_pitch") ? data.at("euler_pitch") : "");
-                        line << "," << (data.count("euler_yaw")   ? data.at("euler_yaw")   : "");
+                        line << "," << (data.count("euler_yaw") ? data.at("euler_yaw") : "");
                     }
                     else
                     {
@@ -439,5 +447,4 @@ namespace exoskeleton::core
                              redis_tools::LogLevel::error);
         }
     }
-
 } // namespace exoskeleton::core

@@ -12,7 +12,7 @@ namespace exoskeleton::core
     public:
         DataLogger(sw::redis::Redis& redis, const std::string& output_path);
 
-        void startLogging();
+        void startLogging(std::string path);
         size_t stopLogging();
 
     private:

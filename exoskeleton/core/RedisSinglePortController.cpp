@@ -151,10 +151,14 @@ namespace exoskeleton::core {
                     values.insert(values.end(), fn.begin(), fn.end());
                     response += redis_tools::jsonArray(values);
                 }
-            } else if (c == "startlogging") {
-                data_logger_->startLogging();
+            } else if (c == "startlog") {
+                if (parts.size() < 4) {
+                    throw std::runtime_error("Missing value for fn_upload");
+                }
+                std::string const &path = parts[3];
+                data_logger_->startLogging(path);
                 response = "logging_started";
-            } else if (c == "stoplogging") {
+            } else if (c == "stoplog") {
                 size_t records = data_logger_->stopLogging();
                 response = "logging_stopped_" + std::to_string(records) + "_records";
             } else {

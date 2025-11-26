@@ -354,7 +354,7 @@ namespace exoskeleton::core
                 sampling_active_ = true;
                 sample_sequence_ = 0;
                 // After IMU initializes and imu_id = 0
-                redis_.hset("run:addrs", "imu"+std::to_string(imu_id_),std::to_string(imu_id_)+"|");
+               // redis_.hset("run:addrs", "imu"+std::to_string(imu_id_),std::to_string(imu_id_)+"|");
 
 
                 publishResponse("start", "OK:sampling_started");
@@ -367,6 +367,7 @@ namespace exoskeleton::core
                 icm20948->stop();
                 stopConsumer(); // Stop the consumer thread
                 // After IMU initializes and imu_id = 0
+
                 redis_.hdel("run:addrs", "imu"+std::to_string(imu_id_));
                 publishResponse("stop", "OK:sampling_stopped");
                 log("INFO", "IMU sampling stopped");
@@ -462,7 +463,7 @@ namespace exoskeleton::core
             {
                 // newest entry is first for XREVRANGE
                 last_id = entries.front().first;
-                qDebug() << "[INIT] last_id set to:" << last_id.c_str();
+                //qDebug() << "[INIT] last_id set to:" << last_id.c_str();
             }
             else
             {
