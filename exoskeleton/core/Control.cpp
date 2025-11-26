@@ -1,5 +1,8 @@
 #include "Control.h"
 
+#include <qlogging.h>
+#include "QDebug"
+
 namespace exoskeleton::core
 {
     // ===================== MotorHistory =====================
@@ -38,6 +41,7 @@ namespace exoskeleton::core
 
         const double dpos = last.position_deg - first.position_deg;
         vel_deg_s = dpos / dt;
+        //qDebug() << "Control loop delta pos"<< dpos <<"velocity: " << vel_deg_s <<"deltatime" << dt ;
         return true;
     }
 

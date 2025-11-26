@@ -7,6 +7,7 @@
 #include "../core/SinglePortExoMotor.h"
 #include "../core/DataLogger.h"
 #include "../settings/Settings.h"
+#include "Control.h"
 
 namespace exoskeleton::core
 {
@@ -27,6 +28,9 @@ namespace exoskeleton::core
 
         void processCommand(const std::string &raw_command);
         auto measureAndStore() -> SingleMotorData;
+
+        //control
+        Control control_{5};
     };
 
 } // exoskeleton::core
