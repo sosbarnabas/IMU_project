@@ -16,17 +16,20 @@
 //#include <iomanip>
 
 
-ICM20948::ICM20948(MCP2221 &mcpRef, uint8_t addr, int imu_id, IMUConfig cfg_): mcp(mcpRef), address(addr), cfg(cfg_),
-                                                                               imu_id_(imu_id) {
+ICM20948::ICM20948(MCP2221& mcpRef, uint8_t addr, int imu_id, IMUConfig cfg_) : mcp(mcpRef), address(addr), cfg(cfg_),
+    imu_id_(imu_id)
+{
 }
 
-bool ICM20948::Initialize() const {
+bool ICM20948::Initialize() const
+{
     if (!SelectBank(0)) return false;
     int res = 0;
     if (const uint8_t WHOAMI_reg_val = mcp.i2cReadSingle(address, ICM20948_WHOAMI);
-        WHOAMI_reg_val != WHOAMI_RESULT) {
+        WHOAMI_reg_val != WHOAMI_RESULT)
+    {
         std::cerr << "Error reading WHOAMI register value: " << std::hex << static_cast<int>(WHOAMI_reg_val) <<
-                std::endl;
+            std::endl;
         return false;
     }
     std::vector<uint8_t> data = {ICM20948_PWR_MGT_1, ICM20948_RESET_BIT};
@@ -43,7 +46,8 @@ bool ICM20948::Initialize() const {
     return true;
 }
 
-bool ICM20948::MAGInitialize() const {
+bool ICM20948::MAGInitialize() const
+{
     SelectBank(0);
     std::vector<uint8_t> data = {ICM20948_INT_PIN_CFG, 0x02}; //ENABLE BIT
     mcp.i2cWrite(address, data);
@@ -51,7 +55,8 @@ bool ICM20948::MAGInitialize() const {
     data = {ICM20948_I2C_MST_CTRL, 0x07}; //datasheet
     mcp.i2cWrite(address, data);
     uint8_t whoami = mcp.i2cReadSingle(ICM20948_BIT_I2C_SLV2_REG, AK09916_REG_WHO_AM_I);
-    if (whoami != AK09916_EXPECTED_WHO_AM_I) {
+    if (whoami != AK09916_EXPECTED_WHO_AM_I)
+    {
         return false;
     }
     data = {AK09918_CNTL2, 0x08}; //Legyen 8, mert az Mode 4 continous reading
@@ -69,18 +74,21 @@ bool ICM20948::MAGInitialize() const {
     return true;
 }
 
-int16_t ICM20948::MergeHL(uint8_t high, uint8_t low) {
+int16_t ICM20948::MergeHL(uint8_t high, uint8_t low)
+{
     return static_cast<int16_t>((high << 8) | low);
 }
 
-bool ICM20948::EnableSensors(bool temp_en, bool gyro_en, bool accel_en) const {
+bool ICM20948::EnableSensors(bool temp_en, bool gyro_en, bool accel_en) const
+{
     //No header variables used because it is easier for visualization
     //PWR_MGT_2 bits[0:2] = GYRO_DIS, bits[3:5] = ACCEL DIS -> 000 = EN, 111 = DIS
     //PWR_MGT_1 bit 6 = sleep, 0 = wake up, 1 = sleep
     int res = 0;
     uint8_t PWR_MGT1 = mcp.i2cReadSingle(address, ICM20948_PWR_MGT_1);
     //uint8_t PWR_MGT2 = mcp.i2cReadSingle(address, ICM20948_PWR_MGT_2);
-    if (temp_en) { PWR_MGT1 &= 0b11111011; } else { PWR_MGT1 |= 0b00000100; }
+    if (temp_en) { PWR_MGT1 &= 0b11111011; }
+    else { PWR_MGT1 |= 0b00000100; }
     uint8_t PWR_MGT2 = 0b00000000;
     if (!gyro_en) { PWR_MGT2 |= 0b00000111; }
     if (!accel_en) { PWR_MGT2 |= 0b00111000; }
@@ -90,7 +98,8 @@ bool ICM20948::EnableSensors(bool temp_en, bool gyro_en, bool accel_en) const {
     data = {ICM20948_PWR_MGT_2, PWR_MGT2};
     res = mcp.i2cWrite(address, data);
     mcp.wait(60);
-    if (res < 0) {
+    if (res < 0)
+    {
         std::cerr << "Error detected with sensor enable: " << res << std::endl;
         return false;
     }
@@ -98,14 +107,16 @@ bool ICM20948::EnableSensors(bool temp_en, bool gyro_en, bool accel_en) const {
     return true;
 }
 
-bool ICM20948::SensorConfig() const {
+bool ICM20948::SensorConfig() const
+{
     SelectBank(2);
     GyroConfig();
     uint16_t gyrosmplrt = GyroSampleRateSet(ICM20948_ACCELGYRO_SAMPLERATE);
     AccelConfig();
     uint16_t accelsmplrt = AccelSampleRateSet(ICM20948_ACCELGYRO_SAMPLERATE);
     SelectBank(0);
-    if (int err = mcp.GetLastError(); err != 0) {
+    if (int err = mcp.GetLastError(); err != 0)
+    {
         std::cerr << "Error detected with sensor config: " << err << std::endl;
         return false;
     }
@@ -113,35 +124,42 @@ bool ICM20948::SensorConfig() const {
     return true;
 }
 
-bool ICM20948::GyroConfig() const {
+bool ICM20948::GyroConfig() const
+{
     std::vector<uint8_t> data = {ICM20948_GYRO_CONFIG_1, gyroconfig.regValue};
     int res = mcp.i2cWrite(address, data);
-    if (res < 0) {
+    if (res < 0)
+    {
         std::cerr << "Error can't write to Gyro_Config: " << res << std::endl;
         return false;
     }
     return true;
 }
 
-bool ICM20948::AccelConfig() const {
+bool ICM20948::AccelConfig() const
+{
     std::vector<uint8_t> data = {ICM20948_ACCEL_CONFIG_1, accelconfig.regValue};
     int res = mcp.i2cWrite(address, data);
-    if (res < 0) {
+    if (res < 0)
+    {
         std::cerr << "Error can't write to ACCEL_Config: " << res << std::endl;
         return false;
     }
     return true;
 }
 
-bool ICM20948::SelectBank(uint8_t bankNum) const {
-    if (bankNum < 0 || bankNum > 3) {
+bool ICM20948::SelectBank(uint8_t bankNum) const
+{
+    if (bankNum < 0 || bankNum > 3)
+    {
         std::cerr << "Invalid bank number" << std::endl;
         return false;
     }
     uint8_t bankVal = bankNum << 4;
     std::vector<uint8_t> bankBuffer = {ICM20948_BANK_SEL, bankVal};
     int res = mcp.i2cWrite(address, bankBuffer);
-    if (res < 0) {
+    if (res < 0)
+    {
         std::cerr << "Failed to write Bank number, " << res << std::endl;
         return false;
     }
@@ -149,21 +167,25 @@ bool ICM20948::SelectBank(uint8_t bankNum) const {
 }
 
 //Loop start, stop and loom implementation
-void ICM20948::Start(TSQueue<ImuSample> &out, const IMUConfig &cfg) {
+void ICM20948::Start(TSQueue<ImuSample>& out, const IMUConfig& cfg)
+{
     stop();
-    worker_ = std::jthread([this,&out,cfg](const std::stop_token &st) {
+    worker_ = std::jthread([this,&out,cfg](const std::stop_token& st)
+    {
         ProducerLoop(st, &out, cfg);
     });
 }
 
 
-void ICM20948::stop() {
+void ICM20948::stop()
+{
     if (worker_.joinable()) worker_.request_stop(), worker_.join();
 }
 
 //producer loop helper function
 // Read FIFO count
-bool ICM20948::ReadFIFOSize(uint16_t &FIFOCount) {
+bool ICM20948::ReadFIFOSize(uint16_t& FIFOCount)
+{
     std::vector<uint8_t> data(2);
     int status = mcp.i2cRead(address, ICM20948_FIFO_COUNTH, data);
     if (status < 0) { return false; }
@@ -171,7 +193,8 @@ bool ICM20948::ReadFIFOSize(uint16_t &FIFOCount) {
     return true;
 }
 
-void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, const IMUConfig cfg) {
+void ICM20948::ProducerLoop(const std::stop_token& st, TSQueue<ImuSample>* out, const IMUConfig cfg)
+{
     if (out == nullptr) { return; }
     // Base and high multipliers from cfg
     int pkt_size = cfg.FIFO_PACKET_SIZE; // bytes/packet
@@ -203,38 +226,47 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
     // Use this as your chrono duration
     const std::chrono::nanoseconds sample_period_ns(sample_period_ns_i64);
 
-     // Helper to switch between 5x and 10x safely
-    auto set_mult = [&](int m) {
+    // Helper to switch between 5x and 10x safely
+    auto set_mult = [&](int m)
+    {
         pkt_mult = m;
         fifo_read_size = pkt_mult * pkt_size;
         burst_size = fifo_read_size;
         fifo_buffer.resize(fifo_read_size);
         std::cout << "Fifo multiplier set to " << pkt_mult << " ,burst size " << burst_size << std::endl;
     };
-     uint16_t fifo_size = 0;
+    uint16_t fifo_size = 0;
 
     uint32_t seq = 0;
     SelectBank(0);
     //main loop
     FlushFIFO(200, 500);
-    while (!st.stop_requested()) {
-        if (!ReadFIFOSize(fifo_size)) {
+    while (!st.stop_requested())
+    {
+        if (!ReadFIFOSize(fifo_size))
+        {
             std::cerr << "Can't read FIFO size" << std::endl;
             return;
         }
         // --- Multipliers---
         const bool using_high = (pkt_mult == pkt_mult_high);
-        const uint16_t low_thresh = static_cast<uint16_t>(pkt_size * pkt_mult* (fifo_thres_mult/3)); // ~ one base burst
+        const uint16_t low_thresh = static_cast<uint16_t>(pkt_size * pkt_mult * (fifo_thres_mult / 3));
+        // ~ one base burst
         const uint16_t high_thresh = static_cast<uint16_t>(pkt_size * pkt_mult * fifo_thres_mult); // “very full”
         //std::cout << "Low thres: " << low_thresh << ", high thres: " <<high_thresh << ", mult: " <<pkt_mult << std::endl;
 
-        if (!using_high && fifo_size > high_thresh) {
+        if (!using_high && fifo_size > high_thresh)
+        {
             set_mult(pkt_mult_high); // drain faster
             overflow = true;
-        } else if (using_high && fifo_size < low_thresh) {
+        }
+        else if (using_high && fifo_size < low_thresh)
+        {
             set_mult(pkt_mult_base); // back to normal
             underflow = true;
-        } else if (fifo_size < burst_size) {
+        }
+        else if (fifo_size < burst_size)
+        {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
@@ -245,27 +277,33 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
         // For better accuracy, assume the newest sample corresponds to (t_read_end - read_duration)
         auto t_newest = fiforeadend - fiforeadduration;
         //std::cout << "FIFO read duration: " << fiforeadduration.count() << " us" << std::endl;
-        for (int packet = 0; packet < pkt_mult; packet++) {
+        for (int packet = 0; packet < pkt_mult; packet++)
+        {
             ImuSample sample{};
-
-            for (int i = 0; i < sample.accel.size(); i++) {
+            sample.gyro_overflow = false;
+            sample.accel_overflow = false;
+            for (int i = 0; i < sample.accel.size(); i++)
+            {
                 size_t idx = pkt_size * packet + i * 2;
                 int16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx + 1]);
                 const float accel_val = raw * accelconfig.scale;
                 sum_accel += accel_val * accel_val;
                 sample.accel.at(i) = accel_val;
+                if (abs(sample.accel.at(i)) > 1.95) { sample.accel_overflow = true; }
             }
-            for (int i = 0; i < sample.gyro.size(); i++) {
+            for (int i = 0; i < sample.gyro.size(); i++)
+            {
                 size_t idx = pkt_size * packet + (i + 3) * 2;
                 int16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx + 1]);
                 const float gyro_val = raw * gyroconfig.scale;
                 sample.gyro.at(i) = gyro_val;
+                if (abs(sample.gyro.at(i)) > 248) { sample.gyro_overflow = true; }
             }
 
-            normalized_accel = sqrtf(sum_accel);
-            for (int i = 0; i < sample.accel.size(); i++) {
-                sample.accel.at(i) /= normalized_accel;
-            }
+            // normalized_accel = sqrtf(sum_accel);
+            // for (int i = 0; i < sample.accel.size(); i++) {
+            //     sample.accel.at(i) /= normalized_accel;
+            // }
 
             //Normal use
             MadgwickAHRSupdateIMU(sample.gyro.at(0) * DEG2RAD, sample.gyro.at(1) * DEG2RAD,
@@ -282,16 +320,21 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
             //eulerAngles(euler);
             //eulerAnglesRPswap(euler);
             // Convert to degrees
-            if (just_zeroed) {
+            if (just_zeroed)
+            {
                 EulerOffset[0] = euler_[0];
                 EulerOffset[1] = euler_[1];
                 EulerOffset[2] = euler_[2];
                 just_zeroed = false;
             }
-            for (int e = 0; e < euler_.size(); e++) {
-                if (set_zero) {
+            for (int e = 0; e < euler_.size(); e++)
+            {
+                if (set_zero)
+                {
                     sample.euler.at(e) = (euler_.at(e) - EulerOffset.at(e)) * RAD2DEG;
-                } else {
+                }
+                else
+                {
                     sample.euler.at(e) = euler_.at(e) * RAD2DEG;
                 }
             }
@@ -302,7 +345,7 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
             //Sample write
             sample.imu_id = imu_id_;
             sample.seq = seq++;
-            sample.t_host = t_newest-offset;
+            sample.t_host = t_newest - offset;
             sample.fifo_overflow = overflow;
             sample.fifo_underflow = underflow;
             sample.fifosize = fifo_size;
@@ -310,40 +353,47 @@ void ICM20948::ProducerLoop(const std::stop_token &st, TSQueue<ImuSample> *out, 
             sample.mag = {0.0, 0.0, 0.0};
             sample.mag_ok = 0;
             out->enqueue(sample);
+            if (seq == 200) { SetBeta(0.04f); }
 
 
-           // sample_start = sample_end;
+            // sample_start = sample_end;
             //std::cout << "Sample duration: " << sample_duration.count() << " us" << std::endl;
-           // std::cout << "[DEBUG] Euler: " << sample.euler.at(0) << " " << sample.euler.at(1) << " " << sample.euler.at(2) << std::endl;
-           // std::cout << "[DEBUG] Gyro: " << sample.gyro.at(0) << " " << sample.gyro.at(1) << " " << sample.gyro.at(2) << std::endl;
-           // std::cout << "[DEBUG] Accel: " << sample.accel.at(0) << " " << sample.accel.at(1) << " " << sample.accel.at(2) << std::endl;
+            // std::cout << "[DEBUG] Euler: " << sample.euler.at(0) << " " << sample.euler.at(1) << " " << sample.euler.at(2) << std::endl;
+            // std::cout << "[DEBUG] Gyro: " << sample.gyro.at(0) << " " << sample.gyro.at(1) << " " << sample.gyro.at(2) << std::endl;
+            // std::cout << "[DEBUG] Accel: " << sample.accel.at(0) << " " << sample.accel.at(1) << " " << sample.accel.at(2) << std::endl;
         }
         overflow = false;
         underflow = false;
-         }
+    }
 }
 
 
-std::vector<float> ICM20948::ReadAccelGyro() {
+std::vector<float> ICM20948::ReadAccelGyro()
+{
     std::vector<float> AccelGyroData(6); // [0:2] accel, [3:5] gyro
     std::vector<uint8_t> out(12); //2 byte per sensor per axis
     int res = mcp.i2cRead(address, ICM20948_ACCEL_START, out);
-    if (res < 0) {
+    if (res < 0)
+    {
         std::cerr << "Failed to read gyro-acceleration register: " << res << std::endl;
     }
 
-    for (int i = 0; i < out.size() / 2; i++) {
+    for (int i = 0; i < out.size() / 2; i++)
+    {
         float rawData = MergeHL(out.at(i * 2), out.at(i * 2 + 1));
-        if (i < 3) {
+        if (i < 3)
+        {
             AccelGyroData.at(i) = rawData * accelconfig.scale;
-        } else { AccelGyroData.at(i) = rawData * gyroconfig.scale; }
+        }
+        else { AccelGyroData.at(i) = rawData * gyroconfig.scale; }
     }
 
 
     return AccelGyroData;
 }
 
-bool ICM20948::CalibrateAccelGyroLegacy(uint16_t NumofSamples) {
+bool ICM20948::CalibrateAccelGyroLegacy(uint16_t NumofSamples)
+{
     std::array<float, 3> sumGyro = {0.0f, 0.0f, 0.0f};
     std::array<float, 3> sumAccel = {0.0f, 0.0f, 0.0f};
     float sumAccelMean = 0;
@@ -364,44 +414,53 @@ bool ICM20948::CalibrateAccelGyroLegacy(uint16_t NumofSamples) {
     std::cout << "Calibrating..." << std::endl;
     //return true;
     auto calibstart = std::chrono::high_resolution_clock::now();
-    while (sampleCount < NumofSamples) {
+    while (sampleCount < NumofSamples)
+    {
         // Read FIFO count
         mcp.i2cRead(address, ICM20948_FIFO_COUNTH, data);
         fifoCount = MergeHL(data.at(0), data.at(1));
         //std::cout << "Calib FIFO size: " << fifoCount << "sampleCount: " << sampleCount << std::endl;
-        if (fifoCount <= cfg.FIFO_BURST_SIZE) {
+        if (fifoCount <= cfg.FIFO_BURST_SIZE)
+        {
             std::cout << "FIFO underflow." << std::endl;
-            if (++underflowCount >= 10) {
+            if (++underflowCount >= 10)
+            {
                 std::cout << "FIFO empty(" << fifoCount << "), underflowcount: " << underflowCount << std::endl;
                 break;
             }
             continue;
         }
 
-        if (fifoCount >= cfg.FIFO_MAX_SIZE - cfg.FIFO_BURST_SIZE) {
+        if (fifoCount >= cfg.FIFO_MAX_SIZE - cfg.FIFO_BURST_SIZE)
+        {
             std::cout << "FIFO overflow." << std::endl;
-            if (++overflowCount >= 10) {
+            if (++overflowCount >= 10)
+            {
                 std::cout << "FIFO overflow(" << fifoCount << "), overflowcount: " << overflowCount << std::endl;
                 break;
             }
         }
 
         // Adjust sample rate if needed
-        if (fifoCount <= cfg.FIFO_BURST_SIZE * 2.5) {
+        if (fifoCount <= cfg.FIFO_BURST_SIZE * 2.5)
+        {
             //mcp.wait(1500);
             auto start = std::chrono::high_resolution_clock::now();
             std::cout << "Underflow" << std::endl;
             continue;
         }
-        if (fifoCount >= cfg.FIFO_MAX_SIZE - cfg.FIFO_BURST_SIZE * 4) {
+        if (fifoCount >= cfg.FIFO_MAX_SIZE - cfg.FIFO_BURST_SIZE * 4)
+        {
             std::vector<uint8_t> fifoendata = {ICM20948_FIFO_EN_2, 0x00};
             mcp.i2cWrite(address, fifoendata);
             fifoStopped = true;
             auto start = std::chrono::high_resolution_clock::now();
             std::cout << "Overflow, fifo count: " << fifoCount << std::endl;
         }
-        if (fifoStopped) {
-            if (fifoCount <= cfg.FIFO_MAX_SIZE / 2) {
+        if (fifoStopped)
+        {
+            if (fifoCount <= cfg.FIFO_MAX_SIZE / 2)
+            {
                 //Enable Accel, Gyro_X_Y_Z but disable LSB (TEMP). MAybe enable for temp compensation TODO!
                 std::vector<uint8_t> fifoendata = {ICM20948_FIFO_EN_2, 0b00011110};
                 mcp.i2cWrite(address, fifoendata);
@@ -410,23 +469,29 @@ bool ICM20948::CalibrateAccelGyroLegacy(uint16_t NumofSamples) {
             }
         }
 
-        if (fifoCount >= cfg.FIFO_BURST_SIZE * 2) {
+        if (fifoCount >= cfg.FIFO_BURST_SIZE * 2)
+        {
             std::vector<uint8_t> fifoData(cfg.FIFO_BURST_SIZE);
             auto readstart = std::chrono::high_resolution_clock::now();
             mcp.i2cRead(address, ICM20948_FIFO_RW, fifoData);
 
             // Parse packets
-            for (int p = 0; p < cfg.FIFO_PACKET_MULT; p++) {
+            for (int p = 0; p < cfg.FIFO_PACKET_MULT; p++)
+            {
                 std::vector<float> AccelGyroData(7); // [0:2] accel, [3:5] gyro
-                for (int i = 0; i < 6; i++) {
+                for (int i = 0; i < 6; i++)
+                {
                     int idx = p * cfg.FIFO_PACKET_SIZE + i * 2;
                     float rawData = MergeHL(fifoData[idx], fifoData[idx + 1]);
-                    if (i < 3) {
+                    if (i < 3)
+                    {
                         AccelGyroData.at(i) = (rawData * accelconfig.scale); // g
                         sumAccel.at(i) += AccelGyroData.at(i);
                         //AccelSquare += AccelGyroData.at(i) * AccelGyroData.at(i);
                         //std::cout << "Raw accel: " << rawData << "  scaled: " << AccelGyroData.at(i) << std::endl;
-                    } else {
+                    }
+                    else
+                    {
                         AccelGyroData.at(i) = (rawData * gyroconfig.scale); // dps
                         sumGyro.at(i - 3) += AccelGyroData.at(i);
                         //GyroMean += AccelGyroData.at(i) * AccelGyroData.at(i);
@@ -450,7 +515,8 @@ bool ICM20948::CalibrateAccelGyroLegacy(uint16_t NumofSamples) {
         }
     }
 
-    for (int i = 0; i < sumAccel.size(); i++) {
+    for (int i = 0; i < sumAccel.size(); i++)
+    {
         sumGyro.at(i) /= static_cast<float>(sampleCount);
         sumAccel.at(i) /= static_cast<float>(sampleCount);
     }
@@ -464,12 +530,13 @@ bool ICM20948::CalibrateAccelGyroLegacy(uint16_t NumofSamples) {
     auto calibend = std::chrono::high_resolution_clock::now();
     double calibduration = std::chrono::duration_cast<std::chrono::seconds>(calibend - calibstart).count();
     std::cout << "AccelBias: " << sumAccel.at(0) << " " << sumAccel.at(1) << " " << sumAccel.at(2) << " GyroBias: "
-            << sumGyro.at(0) << " " << sumGyro.at(1) << " " << sumGyro.at(2) << std::endl;
+        << sumGyro.at(0) << " " << sumGyro.at(1) << " " << sumGyro.at(2) << std::endl;
 
     return true;
 }
 
-uint16_t ICM20948::GyroSampleRateSet(float sampleRate) const {
+uint16_t ICM20948::GyroSampleRateSet(float sampleRate) const
+{
     // Calculation: sampleRate= 1125/(1+GYRO_SMPLRT_DIV)Hz where GYRO_SMPLRT_DIV is 0, 1, 2,…255
     //GYRO_SMPLRT_DIV = 1125/sampleRate - 1
     float _gyrosmplrtdiv = 1125 / sampleRate - 1;
@@ -480,7 +547,8 @@ uint16_t ICM20948::GyroSampleRateSet(float sampleRate) const {
     return 1125 / (static_cast<uint8_t>(_gyrosmplrtdiv) + 1);
 }
 
-uint16_t ICM20948::AccelSampleRateSet(float sampleRate) const {
+uint16_t ICM20948::AccelSampleRateSet(float sampleRate) const
+{
     // Calculation: 1125/(1+ACCEL_SMPLRT_DIV)Hz where ACCEL_SMPLRT_DIV is 0, 1, 2,…4095
     //ACCEL_SMPLRT_DIV = 1125/sampleRate - 1
     float accelsmplrtdiv = 1125 / sampleRate - 1;
@@ -496,23 +564,26 @@ uint16_t ICM20948::AccelSampleRateSet(float sampleRate) const {
 }
 
 //safe calibration saver
-bool ICM20948::saveCalibrationAsTxt(const std::string &stringpath) {
+bool ICM20948::saveCalibrationAsTxt(const std::string& stringpath)
+{
     const std::filesystem::path path(stringpath);
     std::filesystem::path parent = path.parent_path();
-    if (!std::filesystem::exists(parent)) {
+    if (!std::filesystem::exists(parent))
+    {
         std::cout << "[DEBUG] Calibration path not exists" << std::endl;
         std::filesystem::create_directories(parent);
     }
     std::ofstream ofs;
     ofs.open(path, std::ofstream::out);
-    if (!ofs) {
+    if (!ofs)
+    {
         std::cout << "[DEBUG] Can't create calibration file" << std::endl;
         return false;
     };
     ofs << "gyro_bias: " << gyrobias_stored.at(0) << ';' << gyrobias_stored.at(1) << ';' << gyrobias_stored.at(2) <<
-            '\n';
+        '\n';
     ofs << "accel_bias: " << accelbias_stored.at(0) << ';' << accelbias_stored.at(1) << ';' << accelbias_stored.at(2) <<
-            '\n';
+        '\n';
 
     ofs.close();
     std::cout << "[DEBUG] Calibration file saved" << std::endl;
@@ -522,12 +593,14 @@ bool ICM20948::saveCalibrationAsTxt(const std::string &stringpath) {
 }
 
 //safe calibration data loader
-bool ICM20948::loadCalibrationfromTxt(const std::string &path) {
+bool ICM20948::loadCalibrationfromTxt(const std::string& path)
+{
     std::ifstream ifs(path);
     if (!ifs) return false;
     std::cout << "[DEBUG] Calibration file found" << std::endl;
     std::string line;
-    auto parseLine = [](const std::string &src, const std::string &key, std::array<float, 3> &out) -> bool {
+    auto parseLine = [](const std::string& src, const std::string& key, std::array<float, 3>& out) -> bool
+    {
         if (src.rfind(key, 0) != 0) return false; // must start with key
         std::string values = src.substr(key.size());
         std::replace(values.begin(), values.end(), ';', ' ');
@@ -536,7 +609,8 @@ bool ICM20948::loadCalibrationfromTxt(const std::string &path) {
     };
 
     bool gotG = false, gotA = false;
-    while (std::getline(ifs, line)) {
+    while (std::getline(ifs, line))
+    {
         if (!gotG) gotG = parseLine(line, "gyro_bias:", gyrobias_stored);
         if (!gotA) gotA = parseLine(line, "accel_bias:", accelbias_stored);
     }
@@ -549,7 +623,8 @@ bool ICM20948::loadCalibrationfromTxt(const std::string &path) {
 }
 
 
-bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples) {
+bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples)
+{
     std::array<float, 3> sumGyro = {0.0f, 0.0f, 0.0f};
     std::array<float, 3> sumAccel = {0.0f, 0.0f, 0.0f};
     float sumAccelMean = 0;
@@ -577,7 +652,8 @@ bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples) {
     std::vector<uint8_t> fifo_buffer; // read buffer
     fifo_buffer.resize(fifo_read_size);
     // Helper to switch between 10x and 15x safely
-    auto set_mult = [&](int m) {
+    auto set_mult = [&](int m)
+    {
         pkt_mult = m;
         fifo_read_size = pkt_mult * pkt_size;
         burst_size = fifo_read_size;
@@ -589,8 +665,10 @@ bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples) {
     std::cout << "Calibrating..." << std::endl;
     //return true;
     auto calibstart = std::chrono::high_resolution_clock::now();
-    while (sampleCount < NumofSamples) {
-        if (!ReadFIFOSize(fifo_size)) {
+    while (sampleCount < NumofSamples)
+    {
+        if (!ReadFIFOSize(fifo_size))
+        {
             std::cerr << "Can't read FIFO size" << std::endl;
             return false;
         }
@@ -599,26 +677,34 @@ bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples) {
         const uint16_t low_thresh = static_cast<uint16_t>(pkt_size * pkt_mult_base); // ~ one base burst
         const uint16_t high_thresh = static_cast<uint16_t>(pkt_size * pkt_mult_base * fifo_thres_mult); // “very full”
 
-        if (!using_high && fifo_size > high_thresh) {
+        if (!using_high && fifo_size > high_thresh)
+        {
             set_mult(pkt_mult_high); // drain faster
-        } else if (using_high && fifo_size < low_thresh) {
+        }
+        else if (using_high && fifo_size < low_thresh)
+        {
             set_mult(pkt_mult_base); // back to normal
-        } else if (fifo_size < burst_size) {
+        }
+        else if (fifo_size < burst_size)
+        {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
         mcp.i2cRead(address, ICM20948_FIFO_RW, fifo_buffer);
 
-        for (int packet = 0; packet < pkt_mult; packet++) {
+        for (int packet = 0; packet < pkt_mult; packet++)
+        {
             ImuSample sample{};
             const auto t_host = std::chrono::steady_clock::now();
-            for (int i = 0; i < sample.accel.size(); i++) {
+            for (int i = 0; i < sample.accel.size(); i++)
+            {
                 size_t idx = pkt_size * packet + i * 2;
                 int16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx + 1]);
                 const float accel_val = raw * accelconfig.scale;
                 sumAccel.at(i) += accel_val;
             }
-            for (int i = 0; i < sample.gyro.size(); i++) {
+            for (int i = 0; i < sample.gyro.size(); i++)
+            {
                 size_t idx = pkt_size * packet + (i + 3) * 2;
                 int16_t raw = MergeHL(fifo_buffer[idx], fifo_buffer[idx + 1]);
                 const float gyro_val = raw * gyroconfig.scale;
@@ -628,7 +714,8 @@ bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples) {
         }
         std::cout << "Calibration FIFO size: " << fifo_size << "samples: " << sampleCount << std::endl;
     }
-    for (int i = 0; i < sumAccel.size(); i++) {
+    for (int i = 0; i < sumAccel.size(); i++)
+    {
         sumGyro.at(i) /= static_cast<float>(sampleCount);
         sumAccel.at(i) /= static_cast<float>(sampleCount);
     }
@@ -643,13 +730,14 @@ bool ICM20948::CalibrateAccelGyro(uint16_t NumofSamples) {
     auto calibend = std::chrono::high_resolution_clock::now();
     double calibduration = std::chrono::duration_cast<std::chrono::seconds>(calibend - calibstart).count();
     std::cout << "AccelBias: " << sumAccel.at(0) << " " << sumAccel.at(1) << " " << sumAccel.at(2) << " GyroBias: "
-            << sumGyro.at(0) << " " << sumGyro.at(1) << " " << sumGyro.at(2) << std::endl;
+        << sumGyro.at(0) << " " << sumGyro.at(1) << " " << sumGyro.at(2) << std::endl;
     saveCalibrationAsTxt(calibPathTXT());
 
     return true;
 }
 
-bool ICM20948::FIFOConfig() const {
+bool ICM20948::FIFOConfig() const
+{
     SelectBank(0);
     mcp.wait(50);
     std::vector<uint8_t> data(2);
@@ -674,7 +762,8 @@ bool ICM20948::FIFOConfig() const {
 
 
     int err = mcp.GetLastError();
-    if (err < 0) {
+    if (err < 0)
+    {
         std::cerr << "Failed to configure FIFO: " << err << std::endl;
         return false;
     }
@@ -683,7 +772,8 @@ bool ICM20948::FIFOConfig() const {
     return true;
 }
 
-bool ICM20948::FlushFIFO(int numofelements, int waittime) const {
+bool ICM20948::FlushFIFO(int numofelements, int waittime) const
+{
     std::cout << "FIFO flush start" << std::endl;
     mcp.wait(waittime / 2);
     std::vector<uint8_t> data(2);
@@ -702,28 +792,33 @@ bool ICM20948::FlushFIFO(int numofelements, int waittime) const {
     return true;
 }
 
-bool ICM20948::ReadDummyFIFO(int numofelements) const {
+bool ICM20948::ReadDummyFIFO(int numofelements) const
+{
     bool DebugMode = false;
     uint16_t fifoCount = 0;
     std::vector<uint8_t> data(2);
     int iteration = 0;
-    while (fifoCount < cfg.FIFO_COUNT_THRES) {
+    while (fifoCount < cfg.FIFO_COUNT_THRES)
+    {
         mcp.i2cRead(address, ICM20948_FIFO_COUNTH, data);
         fifoCount = MergeHL(data.at(0), data.at(1));
         if (DebugMode) { std::cout << "ReadDummyFIFO buildup count: " << fifoCount << std::endl; }
     }
     // Read FIFO count
-    while (iteration < numofelements) {
+    while (iteration < numofelements)
+    {
         mcp.i2cRead(address, ICM20948_FIFO_COUNTH, data);
         fifoCount = MergeHL(data.at(0), data.at(1));
         if (DebugMode) { std::cout << "ReadDummyFIFO count: " << fifoCount << std::endl; }
-        if (fifoCount >= cfg.FIFO_BURST_SIZE * 2) {
+        if (fifoCount >= cfg.FIFO_BURST_SIZE * 2)
+        {
             std::vector<uint8_t> fifoData(cfg.FIFO_BURST_SIZE);
             auto readstart = std::chrono::high_resolution_clock::now();
             mcp.i2cRead(address, ICM20948_FIFO_RW, fifoData);
             iteration += cfg.FIFO_PACKET_MULT;
         }
-        if (DebugMode) {
+        if (DebugMode)
+        {
             std::cout << "Dummy fifo read, size: " << fifoCount << ", iteration: " << iteration << std::endl;
         }
     }
@@ -731,10 +826,13 @@ bool ICM20948::ReadDummyFIFO(int numofelements) const {
 }
 
 
-bool ICM20948::ReadFIFO() const {
+bool ICM20948::ReadFIFO() const
+{
     std::cout << "Press 'S' to start measuring" << std::endl;
-    while (true) {
-        if (GetAsyncKeyState('S') & 0x8000) {
+    while (true)
+    {
+        if (GetAsyncKeyState('S') & 0x8000)
+        {
             break;
         }
         mcp.wait(50);
@@ -772,7 +870,8 @@ bool ICM20948::ReadFIFO() const {
     bool fifoStopped = false;
 
 
-    while (fifoCount < _fifoCountThres) {
+    while (fifoCount < _fifoCountThres)
+    {
         // Read FIFO count
         mcp.i2cRead(address, ICM20948_FIFO_COUNTH, data);
         fifoCount = MergeHL(data.at(0), data.at(1));
@@ -789,16 +888,19 @@ bool ICM20948::ReadFIFO() const {
 
     int iterator = 0;
     auto loopstart = std::chrono::high_resolution_clock::now();
-    while (true) {
+    while (true)
+    {
         auto start = std::chrono::high_resolution_clock::now();
         // Check for user abort
-        if (GetAsyncKeyState('C') & 0x8000) {
+        if (GetAsyncKeyState('C') & 0x8000)
+        {
             // Windows specific
             std::cout << "Exit on 'C' pressed." << std::endl;
             break;
         }
         bool oPressed = (GetAsyncKeyState('O') & 0x8000);
-        if (oPressed && !oPressedLast) {
+        if (oPressed && !oPressedLast)
+        {
             offsetActive = !offsetActive; // toggle or capture offset
             oPressedJustNow = offsetActive;
             std::cout << "OffsetActive: " << offsetActive << ", opressedjustnow: " << oPressedJustNow << std::endl;
@@ -806,8 +908,10 @@ bool ICM20948::ReadFIFO() const {
         oPressedLast = oPressed;
 
         bool LPressed = (GetAsyncKeyState('L') & 0x8000);
-        if (LPressed && !LPressedLast) {
-            if (!LogActive) {
+        if (LPressed && !LPressedLast)
+        {
+            if (!LogActive)
+            {
                 //LOGGING
                 // std::string basefilename = "SensorLog_";
                 // auto currtime = std::format("{:%F_%H-%M-%S}", std::chrono::zoned_time{
@@ -821,7 +925,9 @@ bool ICM20948::ReadFIFO() const {
                 // LogFile << "ITERATION;GYRO_X;GYRO_Y;GYRO_Z;ACCEL_X;ACCEL_Y;ACCEL_Z;ROLL;PITCH;YAW;TIMESTAMP" <<
                 //         std::endl;
                 // std::cout << "Logging started: " << "../../" << basefilename << currtime << ".txt" << std::endl;
-            } else {
+            }
+            else
+            {
                 LogFile.close();
                 std::cout << "Logging finished" << std::endl;
             }
@@ -833,31 +939,37 @@ bool ICM20948::ReadFIFO() const {
         mcp.i2cRead(address, ICM20948_FIFO_COUNTH, data);
         fifoCount = MergeHL(data.at(0), data.at(1));
 
-        if (fifoCount <= _fifoBurstSize) {
+        if (fifoCount <= _fifoBurstSize)
+        {
             std::cout << "FIFO underflow, (" << fifoCount << "), underflowcount: " << underflowCount << std::endl;
-            if (++underflowCount >= 30) {
+            if (++underflowCount >= 30)
+            {
                 std::cout << "FIFO empty" << std::endl;
                 break;
             }
             continue;
         }
 
-        if (fifoCount >= cfg.FIFO_MAX_SIZE - _fifoCountThres) {
+        if (fifoCount >= cfg.FIFO_MAX_SIZE - _fifoCountThres)
+        {
             std::cout << "FIFO overflow(" << fifoCount << "), overflowcount: " << overflowCount << std::endl;
-            if (++overflowCount >= 30) {
+            if (++overflowCount >= 30)
+            {
                 std::cout << "FIFO overflow" << std::endl;
                 break;
             }
         }
 
         // Adjust sample rate if needed
-        if (fifoCount <= _fifoBurstSize * 2) {
+        if (fifoCount <= _fifoBurstSize * 2)
+        {
             //mcp.wait(1500);
             auto start = std::chrono::high_resolution_clock::now();
             std::cout << "Underflow" << std::endl;
             continue;
         }
-        if (fifoCount >= _fifoBurstSize * 10) {
+        if (fifoCount >= _fifoBurstSize * 10)
+        {
             // std::vector<uint8_t> fifoendata = {ICM20948_FIFO_EN_2, 0x00};
             // mcp.i2cWrite(address, fifoendata);
             _fifoPacketMult = 15;
@@ -867,8 +979,10 @@ bool ICM20948::ReadFIFO() const {
             auto start = std::chrono::high_resolution_clock::now();
             std::cout << "Overflow, fifo count: " << fifoCount << std::endl;
         }
-        if (fifoStopped) {
-            if (fifoCount <= _fifoBurstSize * 2.5) {
+        if (fifoStopped)
+        {
+            if (fifoCount <= _fifoBurstSize * 2.5)
+            {
                 //Enable Accel, Gyro_X_Y_Z but disable LSB (TEMP). MAybe enable for temp compensation TODO!
                 // std::vector<uint8_t> fifoendata = {ICM20948_FIFO_EN_2, 0b00011110};
                 // mcp.i2cWrite(address, fifoendata);
@@ -881,25 +995,31 @@ bool ICM20948::ReadFIFO() const {
             }
         }
 
-        if (fifoCount >= _fifoBurstSize) {
+        if (fifoCount >= _fifoBurstSize)
+        {
             std::vector<uint8_t> fifoData(_fifoBurstSize);
             auto readstart = std::chrono::high_resolution_clock::now();
             mcp.i2cRead(address, ICM20948_FIFO_RW, fifoData);
 
 
             // Parse packets
-            for (int p = 0; p < _fifoPacketMult; p++) {
+            for (int p = 0; p < _fifoPacketMult; p++)
+            {
                 iterator++;
                 std::vector<float> AccelGyroData(7); // [0:2] accel, [3:5] gyro
-                for (int i = 0; i < 6; i++) {
+                for (int i = 0; i < 6; i++)
+                {
                     int idx = p * _fifoPacketSize + i * 2;
                     float rawData = MergeHL(fifoData[idx], fifoData[idx + 1]);
-                    if (i < 3) {
+                    if (i < 3)
+                    {
                         //AccelGyroData.at(i) = (rawData * accelconfig.scale) - accelbias.at(i); // g
                         AccelGyroData.at(i) = (rawData * accelconfig.scale); // gs
                         sumAccel.at(i) += AccelGyroData.at(i);
                         AccelSquare += AccelGyroData.at(i) * AccelGyroData.at(i);
-                    } else {
+                    }
+                    else
+                    {
                         //AccelGyroData.at(i) = (rawData * gyroconfig.scale) - gyrobias.at(i - 3); // dps
                         AccelGyroData.at(i) = (rawData * gyroconfig.scale) - gyrobias_stored.at(i - 3); // dps
                         sumGyro.at(i - 3) += AccelGyroData.at(i);
@@ -908,9 +1028,12 @@ bool ICM20948::ReadFIFO() const {
                 //TIME
                 auto readend = std::chrono::high_resolution_clock::now();
                 long long elapsed_ms;
-                if (p == 0) {
+                if (p == 0)
+                {
                     elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(readend - start).count();
-                } else {
+                }
+                else
+                {
                     elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(readend - readstart).count();
                 }
                 float sensor_delay = std::round(fifoCount / _fifoBurstSize) * elapsed_ms; // average dt for each sample
@@ -918,11 +1041,13 @@ bool ICM20948::ReadFIFO() const {
 
                 //Normalise accel
                 float AccelSquared = sqrtf(AccelSquare);
-                if (AccelSquared > 1e-1f) {
+                if (AccelSquared > 1e-1f)
+                {
                     AccelGyroData.at(0) /= AccelSquared;
                     AccelGyroData.at(1) /= AccelSquared;
                     AccelGyroData.at(2) /= AccelSquared;
-                } else { std::cerr << "Acceleration normalization error" << std::endl; }
+                }
+                else { std::cerr << "Acceleration normalization error" << std::endl; }
 
                 //Normal use
                 MadgwickAHRSupdateIMU(AccelGyroData[3] * DEG2RAD, AccelGyroData[4] * DEG2RAD,
@@ -940,36 +1065,41 @@ bool ICM20948::ReadFIFO() const {
                 //eulerAngles(euler);
                 //eulerAnglesRPswap(euler);
                 // Convert to degrees
-                if (oPressedJustNow) {
+                if (oPressedJustNow)
+                {
                     EulerOffset_.at(0) = euler_.at(0);
                     EulerOffset_.at(1) = euler_.at(1);
                     EulerOffset_.at(2) = euler_.at(2);
                     oPressedJustNow = false;
                 }
-                if (offsetActive) {
+                if (offsetActive)
+                {
                     roll_deg = (euler_[0] - EulerOffset[0]) * RAD2DEG;
                     pitch_deg = (euler_[1] - EulerOffset[1]) * RAD2DEG;
                     yaw_deg = (euler_.at(2) - EulerOffset[2]) * RAD2DEG;
-                } else {
+                }
+                else
+                {
                     roll_deg = euler_.at(0) * RAD2DEG;
                     pitch_deg = euler_.at(1) * RAD2DEG;
                     yaw_deg = euler_.at(2) * RAD2DEG;
                 }
-                if (LogActive) {
+                if (LogActive)
+                {
                     LogFile << iterator << ";"
-                            << AccelGyroData[3] << ";" << AccelGyroData[4] << ";" << AccelGyroData[5] << ";" // gyro
-                            << AccelGyroData[0] << ";" << AccelGyroData[1] << ";" << AccelGyroData[2] << ";" // accel
-                            << roll_deg << ";" << pitch_deg << ";" << yaw_deg << ";" //madgwick output
-                            << AccelGyroData[6] << std::endl; //timestamp
+                        << AccelGyroData[3] << ";" << AccelGyroData[4] << ";" << AccelGyroData[5] << ";" // gyro
+                        << AccelGyroData[0] << ";" << AccelGyroData[1] << ";" << AccelGyroData[2] << ";" // accel
+                        << roll_deg << ";" << pitch_deg << ";" << yaw_deg << ";" //madgwick output
+                        << AccelGyroData[6] << std::endl; //timestamp
                 }
             }
         }
 
 
         std::cout << "FIFO size: " << fifoCount << ", Roll: " << std::setprecision(2) << roll_deg
-                << ", Pitch: " << std::setprecision(2) << pitch_deg
-                << ", Yaw: " << std::setprecision(2) << yaw_deg
-                << std::endl;
+            << ", Pitch: " << std::setprecision(2) << pitch_deg
+            << ", Yaw: " << std::setprecision(2) << yaw_deg
+            << std::endl;
     }
     if (LogActive) { LogFile.close(); }
 
@@ -979,14 +1109,16 @@ bool ICM20948::ReadFIFO() const {
     return true;
 }
 
-std::vector<float> ICM20948::ReadGyroOffsets() const {
+std::vector<float> ICM20948::ReadGyroOffsets() const
+{
     SelectBank(2);
     mcp.wait(50);
     std::vector<float> offsets(3);
     std::vector<uint8_t> data(6);
     mcp.i2cRead(address, ICM20948_XG_OFFS_H, data);
     std::cout << "Internal gyro offsets: ";
-    for (int i = 0; i < offsets.size(); ++i) {
+    for (int i = 0; i < offsets.size(); ++i)
+    {
         int16_t rawData = MergeHL(data.at(i * 2), data.at(i * 2 + 1));
         offsets.at(i) = static_cast<float>(rawData) * ICM20948_GYRO_OFFS_STPSIZE;
         std::cout << offsets.at(i) << " ";
@@ -997,17 +1129,20 @@ std::vector<float> ICM20948::ReadGyroOffsets() const {
     return offsets;
 }
 
-void ICM20948::WriteGyroOffsets(const std::vector<float> &gyroOffsets) const {
+void ICM20948::WriteGyroOffsets(const std::vector<float>& gyroOffsets) const
+{
     SelectBank(2);
     mcp.wait(100);
     uint8_t XG_OFFS_STARTREG = ICM20948_XG_OFFS_H;
     std::vector<uint8_t> data(6);
-    for (int i = 0; i < gyroOffsets.size(); i++) {
+    for (int i = 0; i < gyroOffsets.size(); i++)
+    {
         int16_t rawData = std::lround(gyroOffsets.at(i) / ICM20948_GYRO_OFFS_STPSIZE);
         data.at(2 * i) = static_cast<uint8_t>((rawData >> 8) & 0b11111111);
         data.at(2 * i + 1) = static_cast<uint8_t>(rawData & 0b11111111);
     }
-    for (int i = 0; i < data.size(); i++) {
+    for (int i = 0; i < data.size(); i++)
+    {
         std::vector<uint8_t> temp = {static_cast<uint8_t>(XG_OFFS_STARTREG + i), data.at(i)};
         mcp.i2cWrite(address, temp);
         // std::cout << (int)temp.at(0) << " " << (int)temp.at(1) <<std::endl;
@@ -1018,7 +1153,8 @@ void ICM20948::WriteGyroOffsets(const std::vector<float> &gyroOffsets) const {
 }
 
 
-void ICM20948::ReadExtSlvReg(int size) const {
+void ICM20948::ReadExtSlvReg(int size) const
+{
     std::cout << "Calibrate mag, press M to end";
     //LOGGING
     std::string filename = "MagLog.txt";
@@ -1032,8 +1168,10 @@ void ICM20948::ReadExtSlvReg(int size) const {
     int16_t _hx, _hy, _hz;
     mcp.wait(500);
     SelectBank(0);
-    while (true) {
-        if (GetAsyncKeyState('M') & 0x8000) {
+    while (true)
+    {
+        if (GetAsyncKeyState('M') & 0x8000)
+        {
             // Windows specific
             std::cout << "Exit on 'M' pressed." << std::endl;
             break;

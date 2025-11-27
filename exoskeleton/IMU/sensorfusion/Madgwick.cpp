@@ -25,7 +25,7 @@
 // Definitions
 
 #define sampleFreq  75.0f
-#define betaDef   0.03f
+#define betaDef   0.4f
 #define M_PI        3.14159265358979323846
 //---------------------------------------------------------------------------------------------------
 // Variable definitions
@@ -47,9 +47,9 @@ float nativeinvSqrt(float x);
 // AHRS algorithm update
 
 //SB function to set beta
-// void SetBeta(float calcbeta) {
-//     beta = calcbeta;
-// }
+void SetBeta(float calcbeta) {
+    beta = calcbeta;
+}
 
 /**************************************************************************/
 void MadgwickAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz) {

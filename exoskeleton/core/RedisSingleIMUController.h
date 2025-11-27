@@ -5,15 +5,19 @@
 #include <chrono>
 #include <thread>
 #include <QDebug>
+#include <vector>
+#include <QVector>
+#include <QList>
 #include <sw/redis++/redis++.h>
 #include "../IMU/ICM/icm20948.h"
 #include "../IMU/MCP/mcp2221.h"
 #include "../IMU/include/ImuSample.h"
 #include "../IMU/include/threadsafe_queue.h"
+#include "Control.h"
+
 
 namespace exoskeleton::core
 {
-
     /**
      * Redis-based IMU controller for ICM-20948 9-DOF sensor.
      * Runs independently at 75Hz in a separate thread.
@@ -43,8 +47,8 @@ namespace exoskeleton::core
          * @param redis_uri Redis connection URI (default: tcp://127.0.0.1:6379)
          * @param imu_id Device ID for Redis keys (default: 0)
          */
-        RedisSingleIMUController(MCP2221 &mcp2221_ref,
-                                 const std::string &redis_uri = "tcp://127.0.0.1:6379",
+        RedisSingleIMUController(MCP2221& mcp2221_ref,
+                                 const std::string& redis_uri = "tcp://127.0.0.1:6379",
                                  int imu_id = 0);
 
         ~RedisSingleIMUController();
@@ -61,7 +65,7 @@ namespace exoskeleton::core
     private:
         int imu_id_;
         std::string device_key_; // "imu:0" for 0x69 address
-        MCP2221 &mcp_;
+        MCP2221& mcp_;
         std::unique_ptr<ICM20948> icm20948;
         sw::redis::Redis redis_;
         std::mutex redis_mutex_;
@@ -85,11 +89,49 @@ namespace exoskeleton::core
         std::deque<ImuSample> buffered_samples_;
         mutable std::mutex buffered_samples_mutex_;
 
+        // Called from processCommand when an exercise command arrives
+        void set_exercise(int channel,
+                          int exercise_num,
+                          int exercise_param,
+                          int cooldown_ms);
+
+        // Called from IMU loop after update_imu_state()
+        void updateExerciseFromIMU(const ImuSample& sample, std::int64_t imu_t_ns);
+
+        struct ExerciseContext
+        {
+            bool active         = false;
+
+            // 0 = velocity-based slot selection (existing logic)
+            // 1 = angle-based elbow zero exercise
+           // int  mode           = 0;
+
+            int  channel        = 0;
+            int  exercise_num   = 0;   // as received from command
+            int  exercise_param = 0;   // threshold (deg/s) or angle (deg)
+            int  current_slot   = -1;
+
+            std::vector<int> active_motor_ids;
+
+            // For velocity-based exercise
+            int          cooldown_ms              = 0;
+            std::int64_t below_threshold_since_ns = -1;
+
+            // For angle-based elbow exercise
+            int    elbow_motor_id        = -1;
+            bool   angle_initialized     = false;
+            bool   elbow_zeroed          = false;
+            double roll_zero_deg         = 0.0;  // IMU roll at exercise start
+        };
+
+
+
+        ExerciseContext exercise_;
         /**
          * Process a single command from Redis.
          * Commands: connect, icminit, calibrate, start, stop, zero, disconnect
          */
-        void processCommand(const std::string &raw_command);
+        void processCommand(const std::string& raw_command);
 
         /**
          * Read samples from IMU FIFO and publish to Redis stream.
@@ -108,17 +150,19 @@ namespace exoskeleton::core
          * Publish response to command response queue.
          * Key: commandres:<command>:imu:<id>:t
          */
-        void publishResponse(const std::string &command, const std::string &response);
+        void publishResponse(const std::string& command, const std::string& response);
 
         /**
          * Log message to Redis log stream with IMU tag.
          */
-        void log(const std::string &level, const std::string &message);
+        void log(const std::string& level, const std::string& message);
 
         /**
         * Chack if everything is good before keyspace subscribing to dartaready
         */
         bool is_ready_for_measurements() const;
-    };
 
+        //control
+        Control control_{5};
+    };
 } // namespace exoskeleton::core

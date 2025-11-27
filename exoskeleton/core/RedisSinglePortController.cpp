@@ -39,9 +39,9 @@ namespace exoskeleton::core
                     double vel_deg_s;
                     if (control_.get_motor_velocity(motor_props_.address, vel_deg_s))
                     {
-                        if (abs(vel_deg_s) > 0.5)
+                        if (abs(vel_deg_s) > 4)
                         {
-                            qDebug() << "Motor id" << motor_props_.address << "velocity" << vel_deg_s;
+                            //qDebug() << "Motor id" << motor_props_.address << "velocity" << vel_deg_s;
                         }
                     }
                 }

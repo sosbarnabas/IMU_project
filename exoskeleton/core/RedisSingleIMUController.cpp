@@ -354,7 +354,7 @@ namespace exoskeleton::core
                 sampling_active_ = true;
                 sample_sequence_ = 0;
                 // After IMU initializes and imu_id = 0
-               // redis_.hset("run:addrs", "imu"+std::to_string(imu_id_),std::to_string(imu_id_)+"|");
+                // redis_.hset("run:addrs", "imu"+std::to_string(imu_id_),std::to_string(imu_id_)+"|");
 
 
                 publishResponse("start", "OK:sampling_started");
@@ -368,7 +368,7 @@ namespace exoskeleton::core
                 stopConsumer(); // Stop the consumer thread
                 // After IMU initializes and imu_id = 0
 
-                redis_.hdel("run:addrs", "imu"+std::to_string(imu_id_));
+                redis_.hdel("run:addrs", "imu" + std::to_string(imu_id_));
                 publishResponse("stop", "OK:sampling_stopped");
                 log("INFO", "IMU sampling stopped");
                 std::cout << prefix << "Sampling stopped\n";
@@ -411,6 +411,49 @@ namespace exoskeleton::core
                 {
                     publishResponse("disconnect", "ER:Not connected");
                 }
+            }
+            else if (cmd == "exercise")
+            {
+                // params is expected as "0|[exercisenum, exerciseparam]" or "[exercisenum, exerciseparam]"
+                int channel = 0;
+                std::string json_str;
+                const auto pipePos = params.find('|');
+                if (pipePos != std::string::npos)
+                {
+                    // left side: "0"
+                    const std::string chan_str = params.substr(0, pipePos);
+                    try
+                    {
+                        channel = std::stoi(chan_str);
+                    }
+                    catch (...)
+                    {
+                        channel = 0;
+                    }
+
+                    // right side: "[exercisenum, exerciseparam]"
+                    json_str = params.substr(pipePos + 1);
+                }
+                else
+                {
+                    // no channel given, assume params itself is the JSON array
+                    json_str = params;
+                }
+
+                // Use the same helper as in fn_upload
+                auto values = exoskeleton::redis_tools::parseJsonArray(json_str);
+                if (values.size() < 1)
+                {
+                    std::cerr << prefix << "Invalid exercise array: " << json_str << "\n";
+                    return;
+                }
+
+                const int exercise_num = values[0];
+                const int threshold = (values.size() >= 2) ? values[1] : 0;
+                const int cooldown_ms = (values.size() >= 3) ? values[2] : 0;
+
+                //set exercise type
+                set_exercise(channel, exercise_num, threshold, cooldown_ms);
             }
             else
             {
@@ -527,7 +570,7 @@ namespace exoskeleton::core
 
         static std::optional<ImuSample> last_used_imu; // fallback if buffer is empty
         std::size_t motor_processed = 0;
-        std::size_t imu_published   = 0;
+        std::size_t imu_published = 0;
         // ----------------------------------------------------
         // 3) Process motor entries in chronological order (oldest -> newest)
         // ----------------------------------------------------
@@ -587,29 +630,32 @@ namespace exoskeleton::core
 
 
             auto imu_t_ns =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(
-                sample.t_host.time_since_epoch()).count();
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    sample.t_host.time_since_epoch()).count();
 
             // integer nanosecond diff, positive if motor is later than IMU
             std::int64_t diff_ns = motor_t_raw - imu_t_ns;
             // convert to milliseconds (truncate toward zero)
             std::int64_t diff_ms = diff_ns / 1000000;
+            redisfields.emplace_back("imu_id", std::to_string(sample.imu_id));
+            redisfields.emplace_back("seq", std::to_string(sample.seq));
+            redisfields.emplace_back("t_ns", std::to_string(imu_t_ns));
+            redisfields.emplace_back("motor_sample_time_diff", std::to_string(diff_ms));
 
-            redisfields.emplace_back("t_ns",       std::to_string(imu_t_ns));
-            redisfields.emplace_back("seq",        std::to_string(sample.seq));
-            redisfields.emplace_back("imu_id",     std::to_string(sample.imu_id));
             redisfields.emplace_back("euler_roll", std::to_string(sample.euler.at(0)));
-            redisfields.emplace_back("euler_pitch",std::to_string(sample.euler.at(1)));
-            redisfields.emplace_back("euler_yaw",  std::to_string(sample.euler.at(2)));
-            redisfields.emplace_back("motor_sample_time_diff",
-                                 std::to_string(diff_ms));
-            redisfields.emplace_back("fifo_size",  std::to_string(sample.fifosize));
-            redisfields.emplace_back("fifo_mult",  std::to_string(sample.fifomult));
+            redisfields.emplace_back("euler_pitch", std::to_string(sample.euler.at(1)));
+            redisfields.emplace_back("euler_yaw", std::to_string(sample.euler.at(2)));
+            redisfields.emplace_back("gyro_roll", std::to_string(sample.gyro.at(0)));
+            redisfields.emplace_back("gyro_pitch", std::to_string(sample.gyro.at(1)));
+            redisfields.emplace_back("gyro_yaw", std::to_string(sample.gyro.at(2)));
+
+            redisfields.emplace_back("fifo_size", std::to_string(sample.fifosize));
+            redisfields.emplace_back("fifo_mult", std::to_string(sample.fifomult));
 
             std::uint8_t flags = 0;
-            if (sample.fifo_overflow)  flags |= 0x01;
-            if (sample.fifo_underflow) flags |= 0x02;
-            if (sample.mag_ok)         flags |= 0x04;
+            if (sample.accel_overflow) flags |= 0x01;
+            if (sample.gyro_overflow) flags |= 0x02;
+            //if (sample.mag_ok)         flags |= 0x04;
             redisfields.emplace_back("flags", std::to_string(flags));
 
             try
@@ -617,6 +663,19 @@ namespace exoskeleton::core
                 std::lock_guard<std::mutex> lock(redis_mutex_);
                 redis_.xadd(key, "*", redisfields.begin(), redisfields.end());
                 ++imu_published;
+                // ts_imu_ns: std::int64_t, in nanoseconds
+                // ts_imu_ns: std::int64_t, in nanoseconds
+                control_.update_imu_state(sample.imu_id,
+                                          imu_t_ns,
+                                          sample.euler.at(0),
+                                          sample.euler.at(1),
+                                          sample.euler.at(2),
+                                          sample.gyro.at(0),
+                                          sample.gyro.at(1),
+                                          sample.gyro.at(2));
+
+                // Drive the exercise logic from the same IMU thread:
+                updateExerciseFromIMU(sample, imu_t_ns);
             }
             catch (const std::exception& e)
             {
@@ -625,8 +684,6 @@ namespace exoskeleton::core
         }
         // Update last_id to newest motor entry we just processed
         last_id = entries.front().first;
-
-
     }
 
     bool RedisSingleIMUController::is_ready_for_measurements() const
@@ -776,6 +833,231 @@ namespace exoskeleton::core
         catch (const std::exception& e)
         {
             std::cerr << "[IMUController] Error logging to Redis: " << e.what() << "\n";
+        }
+    }
+
+    //IMU control functions
+    void RedisSingleIMUController::set_exercise(int channel,
+                                                int exercise_num,
+                                                int exercise_param,
+                                                int cooldown_ms)
+    {
+        exercise_.active = true;
+        exercise_.channel = channel;
+        exercise_.exercise_num = exercise_num;
+        exercise_.exercise_param = exercise_param;
+        exercise_.current_slot = -1;
+        exercise_.active_motor_ids.clear();
+
+        exercise_.cooldown_ms = cooldown_ms;
+        exercise_.below_threshold_since_ns = -1;
+
+        // Decide mode: 0 = existing velocity-based, 1 = new angle-based exercise
+        //exercise_.mode = (exercise_num == 1) ? 1 : 0;
+
+        // Angle-based specific init
+        exercise_.elbow_motor_id = -1;
+        exercise_.angle_initialized = false;
+        exercise_.elbow_zeroed = false;
+        exercise_.roll_zero_deg = 0.0;
+
+        {
+            std::lock_guard<std::mutex> lock(redis_mutex_);
+
+            std::unordered_map<std::string, std::string> run_addrs;
+            redis_.hgetall("run:addrs",
+                           std::inserter(run_addrs, run_addrs.begin()));
+
+            for (const auto& kv : run_addrs)
+            {
+                const auto& name = kv.first;
+                const auto& val = kv.second;
+
+                // skip IMU entries, only motors needed
+                if (name.find("imu") != std::string::npos)
+                    continue;
+
+                auto pipe_pos = val.find('|');
+                std::string num_str = (pipe_pos == std::string::npos)
+                                          ? val
+                                          : val.substr(0, pipe_pos);
+
+                try
+                {
+                    int id = std::stoi(num_str);
+                    exercise_.active_motor_ids.push_back(id);
+
+                    // Heuristic: treat the first motor whose name contains "flex"
+                    // as the elbow flexor
+                    if (name.find("e_flex") != std::string::npos &&
+                        exercise_.elbow_motor_id < 0)
+                    {
+                        exercise_.elbow_motor_id = id;
+                    }
+                }
+                catch (std::exception& e)
+                {
+                    // skip malformed entry
+                    qDebug() << e.what();
+                }
+            }
+        }
+
+        // Fallback: if we did not find a specific elbow motor, use first active motor
+        if (exercise_.elbow_motor_id < 0 && !exercise_.active_motor_ids.empty())
+        {
+            exercise_.elbow_motor_id = exercise_.active_motor_ids.front();
+        }
+
+        qDebug() << "[IMU] Exercise mode enabled:"
+            << "exercise_num" << exercise_num
+
+            << "param" << exercise_param
+            << "cooldown_ms" << cooldown_ms
+            << "elbow_motor_id" << exercise_.elbow_motor_id;
+    }
+
+
+    void RedisSingleIMUController::updateExerciseFromIMU(const ImuSample& sample,
+                                                         std::int64_t imu_t_ns)
+    {
+        if (!exercise_.active)
+            return;
+        if (exercise_.active_motor_ids.empty())
+            return;
+        if (exercise_.exercise_num == 0)
+        {
+            double roll_v, pitch_v, yaw_v;
+            if (!control_.get_imu_gyro_velocity(sample.imu_id, roll_v, pitch_v, yaw_v))
+                return;
+
+            const double v = roll_v; // use roll velocity; change axis if needed
+            const int cooldown_ms = exercise_.cooldown_ms;
+            const std::int64_t now_ns = imu_t_ns;
+            int desired_slot = exercise_.current_slot;
+            // Slot selection: |v| > exercise_param -> slot 1, else slot 0
+
+            if (std::abs(v) > exercise_.exercise_param)
+            {
+                exercise_.below_threshold_since_ns = -1;
+                desired_slot = 1;
+            }
+            else
+            {
+                // Below threshold
+                if (exercise_.current_slot == 1 && cooldown_ms > 0)
+                {
+                    // We are in slot 1 and must wait cooldown_ms below threshold before going back to 0
+                    if (exercise_.below_threshold_since_ns < 0)
+                    {
+                        // start cooldown timer
+                        exercise_.below_threshold_since_ns = now_ns;
+                        return; // do not switch yet
+                    }
+
+                    const std::int64_t dt_ns = now_ns - exercise_.below_threshold_since_ns;
+                    const double dt_ms = static_cast<double>(dt_ns) * 1e-6;
+
+                    if (dt_ms >= cooldown_ms)
+                    {
+                        desired_slot = 0;
+                        exercise_.below_threshold_since_ns = -1;
+
+                    }
+                    else
+                    {
+                        // still in cooldown window, stay in slot 1
+                        return;
+                    }
+                }
+                else
+                {
+                    // cooldown_ms == 0 or we are already in slot 0/-1:
+                    desired_slot = 0;
+                    exercise_.below_threshold_since_ns = -1;
+                }
+            }
+
+            // Only act if slot changed
+            if (desired_slot == exercise_.current_slot)
+                return;
+
+            exercise_.current_slot = desired_slot;
+
+            // Build and send function slot select command to Redis
+            // You know the exact format; here is a typical pattern:
+            // |timestamp|fn_select|0|[desired_slot]
+            std::string ts_str = std::to_string(imu_t_ns); // or other timestamp
+
+            // redis_mutex_ is already locked by caller
+            for (int motor_id : exercise_.active_motor_ids)
+            {
+                const std::string cmd = ts_str + "|fn_select|" + std::to_string(motor_id) + "|" + std::to_string(
+                    desired_slot);
+                const std::string motor_key = "command:" + std::to_string(motor_id);
+                redis_.lpush(motor_key, cmd);
+                if (desired_slot == 0) { redis_tools::send_ok(redis_, "commandres:exercise", "slow"); }
+                else { redis_tools::send_ok(redis_, "commandres:exercise", "fast"); }
+            }
+
+            qDebug() << "[IMU] Exercise fn_select sent:"
+                << "slot" << desired_slot
+                << "roll_v[deg/s]" << v
+                << "motors"
+                << QVector<int>(exercise_.active_motor_ids.begin(),
+                                exercise_.active_motor_ids.end());
+        }
+        else if (exercise_.exercise_num == 1)
+        {
+            // 1) On first sample after exercise start: capture zero and "zero" motors/IMU
+            if (!exercise_.angle_initialized)
+            {
+                exercise_.roll_zero_deg = sample.euler.at(0); // use current roll as reference
+                exercise_.angle_initialized = true;
+
+
+                std::string ts_str = std::to_string(imu_t_ns); // or other timestamp
+                for (int motor_id : exercise_.active_motor_ids)
+                {
+                    const std::string cmd = ts_str + "|zero|" + std::to_string(motor_id) + "|";
+                    const std::string motor_key = "command:" + std::to_string(motor_id);
+                    redis_.lpush(motor_key, cmd);
+                }
+                const std::string imu_zero_cmd = ts_str + "|zero|0|";
+                const std::string imu_zero_key = "command:imu:0";
+                redis_.lpush(imu_zero_key, imu_zero_cmd);
+
+                qDebug() << "[IMU] Angle exercise initialized. roll_zero_deg ="
+                    << exercise_.roll_zero_deg;
+
+                // No further logic on this first sample
+                return;
+            }
+
+
+            const double roll_deg = sample.euler.at(0);
+
+            const double target_angle = static_cast<double>(exercise_.exercise_param);
+
+            // 3) When target angle reached (or exceeded) and not yet zeroed → zero elbow flexor
+            if (!exercise_.elbow_zeroed && abs(roll_deg - target_angle) < 0.5)
+            {
+                std::string ts_str = std::to_string(imu_t_ns); // or other timestamp
+                const std::string cmd = ts_str + "|zero|" + std::to_string(exercise_.elbow_motor_id) + "|";
+                const std::string motor_key = "command:" + std::to_string(exercise_.elbow_motor_id);
+                redis_.lpush(motor_key, cmd);
+                redis_tools::send_ok(redis_, "commandres:exercise", "zero");
+
+                exercise_.elbow_zeroed = true;
+
+                qDebug() << "[IMU] Elbow flexor zeroed at roll_rel_deg ="
+                    << roll_deg
+                    << "target_angle =" << target_angle;
+            }
+
+            // This exercise has no slot logic; once elbow is zeroed, you can
+            // leave it active or add an auto-finish flag if you want.
+            return;
         }
     }
 } // namespace exoskeleton::core

@@ -32,6 +32,8 @@ void QuaternionsToEulerAngles( std::array<float,3> &euler_angles );
 void eulerAngles(float *euler_angles);
 void eulerAnglesRPswap(float *euler_angles);
 
+void SetBeta(float calcbeta);
+
 
 
 //=====================================================================================================

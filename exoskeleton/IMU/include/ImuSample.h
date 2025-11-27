@@ -18,5 +18,7 @@ struct ImuSample {
     uint8_t fifo_overflow: 1{};
     uint8_t fifo_underflow: 1{};
     uint8_t mag_ok: 1{};
-    uint8_t reserved: 5{};
+    uint8_t accel_overflow: 1{};
+    uint8_t gyro_overflow: 1{};
+    uint8_t reserved: 3{};
 };
