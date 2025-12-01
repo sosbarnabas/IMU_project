@@ -14,6 +14,7 @@
 #include "../IMU/include/ImuSample.h"
 #include "../IMU/include/threadsafe_queue.h"
 #include "Control.h"
+#include "ExerciseControl.h"
 
 
 namespace exoskeleton::core
@@ -89,44 +90,12 @@ namespace exoskeleton::core
         std::deque<ImuSample> buffered_samples_;
         mutable std::mutex buffered_samples_mutex_;
 
-        // Called from processCommand when an exercise command arrives
-        void set_exercise(int channel,
-                          int exercise_num,
-                          int exercise_param,
-                          int cooldown_ms);
-
-        // Called from IMU loop after update_imu_state()
-        void updateExerciseFromIMU(const ImuSample& sample, std::int64_t imu_t_ns);
-
-        struct ExerciseContext
-        {
-            bool active         = false;
-
-            // 0 = velocity-based slot selection (existing logic)
-            // 1 = angle-based elbow zero exercise
-           // int  mode           = 0;
-
-            int  channel        = 0;
-            int  exercise_num   = 0;   // as received from command
-            int  exercise_param = 0;   // threshold (deg/s) or angle (deg)
-            int  current_slot   = -1;
-
-            std::vector<int> active_motor_ids;
-
-            // For velocity-based exercise
-            int          cooldown_ms              = 0;
-            std::int64_t below_threshold_since_ns = -1;
-
-            // For angle-based elbow exercise
-            int    elbow_motor_id        = -1;
-            bool   angle_initialized     = false;
-            bool   elbow_zeroed          = false;
-            double roll_zero_deg         = 0.0;  // IMU roll at exercise start
-        };
 
 
 
-        ExerciseContext exercise_;
+
+
+       // ExerciseContext exercise_;
         /**
          * Process a single command from Redis.
          * Commands: connect, icminit, calibrate, start, stop, zero, disconnect
@@ -163,6 +132,8 @@ namespace exoskeleton::core
         bool is_ready_for_measurements() const;
 
         //control
-        Control control_{5};
+        Control control_;
+        // NEW: persistent exercise handler
+        exoskeleton::core::ExerciseController exercise_controller_;
     };
 } // namespace exoskeleton::core

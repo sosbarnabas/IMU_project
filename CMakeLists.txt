@@ -55,6 +55,7 @@ add_executable(SINGLEPORT tests/SinglePortMotorTEST.cpp
         exoskeleton/core/RedisSingleIMUController.cpp
         #Control
         exoskeleton/core/Control.cpp
+        exoskeleton/core/ExerciseControl.cpp
 
 )
 
