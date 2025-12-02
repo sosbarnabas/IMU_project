@@ -119,7 +119,7 @@ namespace exoskeleton::core
          * Publish response to command response queue.
          * Key: commandres:<command>:imu:<id>:t
          */
-        void publishResponse(const std::string& command, const std::string& response);
+        void publishResponse(const std::string& command,const std::string t_str, const std::string& response);
 
         /**
          * Log message to Redis log stream with IMU tag.

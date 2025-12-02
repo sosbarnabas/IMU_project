@@ -304,7 +304,6 @@ namespace exoskeleton::core
             {
                 int motor_id = active_motors_[i];
                 if (i > 0) header << ",";
-
                 header << "motor_" << motor_id << "_id";
                 header << ",motor_" << motor_id << "_t";
                 header << ",motor_" << motor_id << "_position";

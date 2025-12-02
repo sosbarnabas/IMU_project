@@ -20,43 +20,24 @@ namespace exoskeleton::core
         std::string parameters;
     };
 
-    std::optional<CommandRecord> parseImuCommandRecord(const std::string& record)
+    std::vector<std::string> parseImuCommandRecord(const std::string& raw_command)
     {
-        const auto first = record.find('|');
-        if (first == std::string::npos)
-            return std::nullopt;
+        std::vector<std::string> parts{};
+        if (raw_command.empty())
+            return parts;
 
-        const auto second = record.find('|', first + 1);
-        if (second == std::string::npos)
-            return std::nullopt;
+        // Split by '|'
+        //std::vector<std::string> parts{};
+        std::stringstream ss(raw_command);
+        std::string tok;
+        while (std::getline(ss, tok, '|'))
+            parts.push_back(tok);
 
-        const auto third = record.find('|', second + 1);
-        if (third == std::string::npos)
-            return std::nullopt;
-
-        CommandRecord result;
-        try
-        {
-            result.timestamp = std::stoll(record.substr(0, first));
+        if (parts.size() < 2) {
+            qDebug() << "[IMU] Invalid command: '" << raw_command << "'\n";
+            return parts;
         }
-        catch (...)
-        {
-            result.timestamp = 0;
-        }
-
-        result.command = record.substr(first + 1, second - first - 1);
-
-        try
-        {
-            result.address = std::stoi(record.substr(second + 1, third - second - 1));
-        }
-        catch (...)
-        {
-            result.address = 0;
-        }
-
-        result.parameters = record.substr(third + 1);
-        return result;
+        return parts;
     }
 
     long long nowNs()
@@ -74,7 +55,7 @@ namespace exoskeleton::core
           icm20948(nullptr),
           redis_(redis_uri),
           control_(4),
-          exercise_controller_(redis_, control_,redis_mutex_) // construct ExerciseController with references
+          exercise_controller_(redis_, control_, redis_mutex_) // construct ExerciseController with references
     {
         std::cout << "[IMUController] Initialized for " << device_key_ << " at address 0x69\n";
     }
@@ -133,12 +114,12 @@ namespace exoskeleton::core
             catch (const std::exception& e)
             {
                 std::cerr << "[IMUController] Command error: " << e.what() << "\n";
-                publishResponse("unknown", std::string("ER:") + e.what());
+               // publishResponse("unknown",t_str, std::string("ER:") + e.what());
             }
             catch (...)
             {
                 std::cerr << "[IMUController] Unknown command error\n";
-                publishResponse("unknown", "ER:unknown_exception");
+                //publishResponse("unknown", "ER:unknown_exception");
             }
         });
 
@@ -189,19 +170,23 @@ namespace exoskeleton::core
 
     void RedisSingleIMUController::processCommand(const std::string& raw_command)
     {
-        if (raw_command == "" || raw_command == " ") return;
-        const auto parsed = parseImuCommandRecord(raw_command);
-        if (!parsed)
-        {
-            std::cerr << "[IMUController] Unparseable command: '" << raw_command << "'\n";
-            return;
+        if (raw_command.empty() || raw_command == " ") return;
+        const std::vector<std::string> parts = parseImuCommandRecord(raw_command);
+        const std::string& t_str = parts[0];     // timestamp as string (if you ever need it)
+        std::string cmd          = parts[1];     // command
+        int idx                  = 0;            // index/flag, optional
+        if (parts.size() >= 3 && !parts[2].empty()) {
+            try {
+                idx = std::stoi(parts[2]);
+            } catch (...) {
+                // You can log but don't crash
+                std::cerr << "[IMU] Invalid idx in command: '" << raw_command << "'\n";
+                idx = 0;
+            }
         }
 
-        std::string cmd = parsed->command;
-        std::transform(cmd.begin(), cmd.end(), cmd.begin(),
-                       [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+        const std::string params = (parts.size() >= 4) ? parts[3] : std::string{};
 
-        const std::string& params = parsed->parameters;
         const std::string prefix = "[IMU] ";
 
         try
@@ -211,7 +196,7 @@ namespace exoskeleton::core
                 if (mcp_.open())
                 {
                     connected_ = true;
-                    publishResponse("connect", "OK");
+                    publishResponse("connect",t_str, "OK");
                     log("INFO", "Connected via MCP2221");
 
                     //icm init is mvoed here
@@ -232,7 +217,7 @@ namespace exoskeleton::core
                             auto end = std::chrono::steady_clock::now();
                             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-                            publishResponse("icminit", "OK:init_time_" + std::to_string(duration.count()) + "ms");
+                            publishResponse("icminit",t_str, "OK:init_time_" + std::to_string(duration.count()) + "ms");
                             log("INFO",
                                 "ICM-20948 initialized and producer started in " + std::to_string(duration.count()) +
                                 "ms");
@@ -240,19 +225,19 @@ namespace exoskeleton::core
                         }
                         else
                         {
-                            publishResponse("icminit", "ER:FIFO configuration failed");
+                            publishResponse("icminit",t_str, "ER:FIFO configuration failed");
                             log("ERROR", "FIFO configuration failed");
                         }
                     }
                     else
                     {
-                        publishResponse("icminit", "ER:ICM-20948 initialization failed (not responding at 0x69?)");
+                        publishResponse("icminit",t_str, "ER:ICM-20948 initialization failed (not responding at 0x69?)");
                         log("ERROR", "ICM-20948 initialization failed at address 0x69");
                     }
                 }
                 else
                 {
-                    publishResponse("connect", "ER:Failed to open MCP2221");
+                    publishResponse("connect",t_str, "ER:Failed to open MCP2221");
                     log("ERROR", "Failed to open MCP2221");
                 }
             }
@@ -260,7 +245,7 @@ namespace exoskeleton::core
             {
                 if (!connected_)
                 {
-                    publishResponse("icminit", "ER:Not connected (run connect first)");
+                    publishResponse("icminit",t_str, "ER:Not connected (run connect first)");
                     return;
                 }
 
@@ -283,20 +268,20 @@ namespace exoskeleton::core
                         auto end = std::chrono::steady_clock::now();
                         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-                        publishResponse("icminit", "OK:init_time_" + std::to_string(duration.count()) + "ms");
+                        publishResponse("icminit",t_str, "OK:init_time_" + std::to_string(duration.count()) + "ms");
                         log("INFO",
                             "ICM-20948 initialized and producer started in " + std::to_string(duration.count()) + "ms");
                         calibration_loaded_ = false;
                     }
                     else
                     {
-                        publishResponse("icminit", "ER:FIFO configuration failed");
+                        publishResponse("icminit",t_str, "ER:FIFO configuration failed");
                         log("ERROR", "FIFO configuration failed");
                     }
                 }
                 else
                 {
-                    publishResponse("icminit", "ER:ICM-20948 initialization failed (not responding at 0x69?)");
+                    publishResponse("icminit",t_str, "ER:ICM-20948 initialization failed (not responding at 0x69?)");
                     log("ERROR", "ICM-20948 initialization failed at address 0x69");
                 }
             }
@@ -304,13 +289,12 @@ namespace exoskeleton::core
             {
                 if (!icm20948)
                 {
-                    publishResponse("calibrate", "ER:IMU not initialized (run icminit first)");
+                    publishResponse("calibrate",t_str, "ER:IMU not initialized (run icminit first)");
                     return;
                 }
 
-                std::string cal_mode = params;
-                std::transform(cal_mode.begin(), cal_mode.end(), cal_mode.begin(),
-                               [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+                const std::string& cal_mode = params;
+
 
                 if (cal_mode == "save")
                 {
@@ -323,31 +307,31 @@ namespace exoskeleton::core
                     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
                     calibration_loaded_ = true;
-                    publishResponse("calibrate", "OK:calibration_complete_" + std::to_string(duration.count()) + "ms");
+                    publishResponse("calibrate",t_str, "OK:calibration_complete_" + std::to_string(duration.count()) + "ms");
                     log("INFO", "Calibration performed and saved");
                 }
                 else if (cal_mode == "load")
                 {
                     icm20948->loadCalibrationfromTxt(calibPathTXT());
-                    publishResponse("calibrate", "OK:calibration_loaded");
+                    publishResponse("calibrate",t_str, "OK:calibration_loaded");
                     calibration_loaded_ = true;
                     log("INFO", "Calibration loaded from file");
                 }
                 else
                 {
-                    publishResponse("calibrate", "ER:Invalid calibration mode (use 'save' or 'load')");
+                    publishResponse("calibrate", t_str,"ER:Invalid calibration mode (use 'save' or 'load')");
                 }
             }
             else if (cmd == "start")
             {
                 if (!icm20948)
                 {
-                    publishResponse("start", "ER:IMU not initialized");
+                    publishResponse("start",t_str ,"ER:IMU not initialized");
                     return;
                 }
                 if (!calibration_loaded_)
                 {
-                    publishResponse("start", "ER:IMU not calibrated (run 'calibrate save' or 'calibrate load' first)");
+                    publishResponse("start",t_str, "ER:IMU not calibrated (run 'calibrate save' or 'calibrate load' first)");
                     return;
                 }
 
@@ -359,7 +343,7 @@ namespace exoskeleton::core
                 // redis_.hset("run:addrs", "imu"+std::to_string(imu_id_),std::to_string(imu_id_)+"|");
 
 
-                publishResponse("start", "OK:sampling_started");
+                publishResponse("start",t_str, "OK:sampling_started");
                 log("INFO", "IMU sampling started at 75Hz");
                 std::cout << prefix << "Sampling started\n";
             }
@@ -371,7 +355,7 @@ namespace exoskeleton::core
                 // After IMU initializes and imu_id = 0
 
                 redis_.hdel("run:addrs", "imu" + std::to_string(imu_id_));
-                publishResponse("stop", "OK:sampling_stopped");
+                publishResponse("stop",t_str, "OK:sampling_stopped");
                 log("INFO", "IMU sampling stopped");
                 std::cout << prefix << "Sampling stopped\n";
             }
@@ -379,7 +363,7 @@ namespace exoskeleton::core
             {
                 if (!sampling_active_)
                 {
-                    publishResponse("zero", "ER:Sampling not active");
+                    publishResponse("zero",t_str, "ER:Sampling not active");
                     return;
                 }
 
@@ -388,12 +372,12 @@ namespace exoskeleton::core
 
                 if (enable_zero)
                 {
-                    publishResponse("zero", "OK:euler_zeroing_enabled");
+                    publishResponse("zero",t_str, "OK:euler_zeroing_enabled");
                     log("INFO", "Euler angle zeroing enabled (reference set to current)");
                 }
                 else
                 {
-                    publishResponse("zero", "OK:euler_zeroing_disabled");
+                    publishResponse("zero", t_str,"OK:euler_zeroing_disabled");
                     log("INFO", "Euler angle zeroing disabled");
                 }
             }
@@ -406,12 +390,12 @@ namespace exoskeleton::core
                     sampling_active_ = false;
                     icm20948.reset();
 
-                    publishResponse("disconnect", "OK");
+                    publishResponse("disconnect",t_str, "OK");
                     log("INFO", "Disconnected from IMU");
                 }
                 else
                 {
-                    publishResponse("disconnect", "ER:Not connected");
+                    publishResponse("disconnect",t_str,"ER:Not connected");
                 }
             }
             else if (cmd == "exercise")
@@ -453,18 +437,24 @@ namespace exoskeleton::core
                 const int exercise_num = values[0];
                 const int threshold = (values.size() >= 2) ? values[1] : 0;
                 const int cooldown_ms = (values.size() >= 3) ? values[2] : 0;
-                if (exercise_num == 2)
+                if (exercise_num == -1)
+                {
+                    exercise_controller_.stop_exercise();
+                    return;
+                }
+                else if (exercise_num == 2)
                 {
                     if (values.size() < 5)
                     {
-                        std::cerr << prefix << "Strength exercise needs 5 values [2, torque, sets, reps, muscle_type]\n";
+                        std::cerr << prefix <<
+                            "Strength exercise needs 5 values [2, torque, sets, reps, muscle_type]\n";
                         return;
                     }
 
-                    const int torque      = values[1];
-                    const int sets        = values[2];
-                    const int reps        = values[3];
-                    const int muscle_type = values[4];  // 0=biceps, 1=triceps
+                    const int torque = values[1];
+                    const int sets = values[2];
+                    const int reps = values[3];
+                    const int muscle_type = values[4]; // 0=biceps, 1=triceps
 
                     exercise_controller_.start_strength_exercise(channel, torque, sets, reps, muscle_type);
                     return;
@@ -474,14 +464,14 @@ namespace exoskeleton::core
             }
             else
             {
-                publishResponse(cmd, "ER:Unknown command");
+                publishResponse(cmd,t_str, "ER:Unknown command");
                 std::cout << prefix << "Unknown command: '" << cmd << "'\n";
             }
         }
         catch (const std::exception& e)
         {
             std::cerr << prefix << "Error processing command: " << e.what() << "\n";
-            publishResponse(cmd, std::string("ER:") + e.what());
+            publishResponse(cmd,t_str, std::string("ER:") + e.what());
         }
     }
 
@@ -816,17 +806,17 @@ namespace exoskeleton::core
         consumer_running_ = false;
     }
 
-    void RedisSingleIMUController::publishResponse(const std::string& command, const std::string& response)
+    void RedisSingleIMUController::publishResponse(const std::string& command,const std::string t_str, const std::string& response)
     {
         try
         {
             std::lock_guard<std::mutex> lock(redis_mutex_);
             // Single unified response key for all IMU command responses
-            auto res_key = "commandres:" + device_key_;
+            auto res_key = "commandres:"+command+":1000:"+t_str;
             // Format: timestamp|command|response
-            auto t_ns = nowNs();
-            std::string formatted = std::to_string(t_ns) + "|" + command + "|" + response;
-            redis_.lpush(res_key, formatted);
+            //auto t_ns = nowNs();
+            //std::string formatted = std::to_string(t_ns) + "|" + command + "|" + response;
+            redis_.lpush(res_key, response);
         }
         catch (const std::exception& e)
         {

@@ -9,6 +9,7 @@
 #include <mutex>
 #include <map>
 #include <QDebug>
+#include  "cmath"
 namespace exoskeleton::core
 {
     struct ExerciseContext

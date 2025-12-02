@@ -254,25 +254,32 @@ namespace exoskeleton::core
             const double target_angle = static_cast<double>(exercise_.exercise_param);
 
             // 3) When target angle reached (or exceeded) and not yet zeroed → zero elbow flexor
-            if (!exercise_.elbow_zeroed && abs(roll_deg - target_angle) < 0.5)
+            if (!exercise_.elbow_zeroed)
             {
-                std::string ts_str = std::to_string(imu_t_ns); // or other timestamp
-
-                for (const auto& [motor_name, motor_id] : exercise_.active_motors)
+                qDebug() << "[IMU] Exc1" << roll_deg;
+                if (std::abs(std::abs(roll_deg) - target_angle) < 0.5)
                 {
-                    if (motor_name == "e_flex")
-                    {
-                        const std::string cmd =
-                            ts_str + "|zero|" +
-                            std::to_string(motor_id) + "|";
-                        const std::string motor_key = "command:" + std::to_string(motor_id);
-                        redis_.lpush(motor_key, cmd);
-                        redis_tools::send_ok(redis_, "commandres:exercise", "zero");
-                        exercise_.elbow_zeroed = true;
+                    std::string ts_str = std::to_string(imu_t_ns); // or other timestamp
+                    std::string temp_motor;
+                    if (roll_deg < 0) { temp_motor = "e_flex"; }
+                    else temp_motor = "e_ext";
 
-                        qDebug() << "[IMU] Elbow flexor zeroed at roll_rel_deg ="
-                            << roll_deg
-                            << "target_angle =" << target_angle;
+                    for (const auto& [motor_name, motor_id] : exercise_.active_motors)
+                    {
+                        if (motor_name == temp_motor)
+                        {
+                            const std::string cmd =
+                                ts_str + "|zero|" +
+                                std::to_string(motor_id) + "|";
+                            const std::string motor_key = "command:" + std::to_string(motor_id);
+                            redis_.lpush(motor_key, cmd);
+                            redis_tools::send_ok(redis_, "commandres:exercise", "zero:" + temp_motor);
+                            exercise_.elbow_zeroed = true;
+
+                            qDebug() << "[IMU] Elbow flexor zeroed at roll_deg ="
+                                << roll_deg
+                                << "target_angle =" << target_angle;
+                        }
                     }
                 }
             }
@@ -282,6 +289,7 @@ namespace exoskeleton::core
             // leave it active or add an auto-finish flag if you want.
             return;
         }
+
         else if (exercise_.exercise_num == 2)
         {
             if (exercise_.current_set > exercise_.strength_sets)
@@ -433,8 +441,8 @@ namespace exoskeleton::core
                         << ";";
 
                     redis_.lpush("commandres:exercise", oss.str());
-                    // qDebug() << "Exercise log" << oss.str();
-                    qDebug() << "Fatique: " << exercise_.fatigue_index;
+                     qDebug() << "Exercise log" << oss.str();
+                   // qDebug() << "Fatique: " << exercise_.fatigue_index;
 
                     exercise_.last_rep_end_ns = exercise_.rep_end_ns;
 
