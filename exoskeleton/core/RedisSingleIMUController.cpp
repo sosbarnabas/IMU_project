@@ -10,53 +10,44 @@
 #include <iomanip>
 #include <atomic>
 
-namespace exoskeleton::core {
-    struct CommandRecord {
+namespace exoskeleton::core
+{
+    struct CommandRecord
+    {
         long long timestamp = 0;
         std::string command;
         int address = 0;
         std::string parameters;
     };
 
-    std::optional<CommandRecord> parseImuCommandRecord(const std::string &record) {
-        const auto first = record.find('|');
-        if (first == std::string::npos)
-            return std::nullopt;
+    std::vector<std::string> parseImuCommandRecord(const std::string& raw_command)
+    {
+        std::vector<std::string> parts{};
+        if (raw_command.empty())
+            return parts;
 
-        const auto second = record.find('|', first + 1);
-        if (second == std::string::npos)
-            return std::nullopt;
+        // Split by '|'
+        //std::vector<std::string> parts{};
+        std::stringstream ss(raw_command);
+        std::string tok;
+        while (std::getline(ss, tok, '|'))
+            parts.push_back(tok);
 
-        const auto third = record.find('|', second + 1);
-        if (third == std::string::npos)
-            return std::nullopt;
-
-        CommandRecord result;
-        try {
-            result.timestamp = std::stoll(record.substr(0, first));
-        } catch (...) {
-            result.timestamp = 0;
+        if (parts.size() < 2) {
+            qDebug() << "[IMU] Invalid command: '" << raw_command << "'\n";
+            return parts;
         }
-
-        result.command = record.substr(first + 1, second - first - 1);
-
-        try {
-            result.address = std::stoi(record.substr(second + 1, third - second - 1));
-        } catch (...) {
-            result.address = 0;
-        }
-
-        result.parameters = record.substr(third + 1);
-        return result;
+        return parts;
     }
 
-    long long nowNs() {
+    long long nowNs()
+    {
         const auto now = std::chrono::system_clock::now().time_since_epoch();
         return std::chrono::duration_cast<std::chrono::nanoseconds>(now).count();
     }
 
-    RedisSingleIMUController::RedisSingleIMUController(MCP2221 &mcp2221_ref,
-                                                       const std::string &redis_uri,
+    RedisSingleIMUController::RedisSingleIMUController(MCP2221& mcp2221_ref,
+                                                       const std::string& redis_uri,
                                                        int imu_id)
         : imu_id_(imu_id),
           device_key_("imu:" + std::to_string(imu_id)),
@@ -69,14 +60,17 @@ namespace exoskeleton::core {
         std::cout << "[IMUController] Initialized for " << device_key_ << " at address 0x69\n";
     }
 
-    RedisSingleIMUController::~RedisSingleIMUController() {
-        if (icm20948) {
+    RedisSingleIMUController::~RedisSingleIMUController()
+    {
+        if (icm20948)
+        {
             icm20948.reset();
         }
         std::cout << "[IMUController] Destroyed\n";
     }
 
-    void RedisSingleIMUController::loop() {
+    void RedisSingleIMUController::loop()
+    {
         std::cout << "[IMUController] Starting main loop (75Hz producer, Redis-driven commands)...\n";
         std::cout << "[IMUController] Commands: connect, icminit, calibrate, start, stop, zero, disconnect\n";
         std::cout << "[IMUController] Command queue: command:" << device_key_ << "\n";
@@ -87,16 +81,19 @@ namespace exoskeleton::core {
 
         // Subscribe to the same tick key as motors
         auto subscriber =
-                exoskeleton::redis_tools::make_keyspace_subscriber(redis_, "sync:loop:next");
+            exoskeleton::redis_tools::make_keyspace_subscriber(redis_, "sync:loop:next");
 
-        subscriber.on_message([this, &stop_requested](const std::string &channel,
-                                                      const std::string &msg) {
-            if (msg != "set") {
+        subscriber.on_message([this, &stop_requested](const std::string& channel,
+                                                      const std::string& msg)
+        {
+            if (msg != "set")
+            {
                 return;
             }
 
             // Check exit flag: same semantics as everywhere else
-            if (auto exit_flag = redis_.get("exit"); exit_flag && *exit_flag == "1") {
+            if (auto exit_flag = redis_.get("exit"); exit_flag && *exit_flag == "1")
+            {
                 std::cout << "[IMUController] Exit signal received.\n";
                 stop_requested = true;
                 return;
@@ -105,32 +102,42 @@ namespace exoskeleton::core {
             // Process at most one command per tick from the IMU command list
             const std::string cmd_key = "command:" + device_key_;
             auto raw_command = redis_.lpop(cmd_key);
-            if (!raw_command && is_ready_for_measurements()) {
+            if (!raw_command && is_ready_for_measurements())
+            {
                 onFrameStoreIMU();
             }
 
-            try {
+            try
+            {
                 processCommand(*raw_command);
-            } catch (const std::exception &e) {
-                std::cerr << "[IMUController] Command error: " << e.what() << "\n";
-                publishResponse("unknown", std::string("ER:") + e.what());
             }
-            catch (...) {
+            catch (const std::exception& e)
+            {
+                std::cerr << "[IMUController] Command error: " << e.what() << "\n";
+               // publishResponse("unknown",t_str, std::string("ER:") + e.what());
+            }
+            catch (...)
+            {
                 std::cerr << "[IMUController] Unknown command error\n";
-                publishResponse("unknown", "ER:unknown_exception");
+                //publishResponse("unknown", "ER:unknown_exception");
             }
         });
 
         // Main loop: just consume sync:loop:next events
-        while (!stop_requested.load()) {
-            try {
+        while (!stop_requested.load())
+        {
+            try
+            {
                 subscriber.consume(); // blocks until next "set" on sync:loop:next
-            } catch (const std::exception &e) {
+            }
+            catch (const std::exception& e)
+            {
                 std::cerr << "[IMUController] Loop error: " << e.what() << "\n";
                 log("ERROR", std::string("Main loop error: ") + e.what());
                 break;
             }
-            catch (...) {
+            catch (...)
+            {
                 std::cerr << "[IMUController] Unknown loop error\n";
                 log("ERROR", "Unknown exception in IMU main loop");
                 break;
@@ -141,49 +148,68 @@ namespace exoskeleton::core {
 
         // Same shutdown sequence as before
         stopConsumer(); // stop the consumer thread draining sample_queue_
-        if (icm20948) {
-            try {
+        if (icm20948)
+        {
+            try
+            {
                 icm20948->stop(); // stop producer inside ICM
-            } catch (...) {
+            }
+            catch (...)
+            {
             }
         }
-        try {
+        try
+        {
             mcp_.close();
-        } catch (...) {
+        }
+        catch (...)
+        {
         }
         connected_ = false;
     }
 
-    void RedisSingleIMUController::processCommand(const std::string &raw_command) {
-        if (raw_command == "" || raw_command == " ") return;
-        const auto parsed = parseImuCommandRecord(raw_command);
-        if (!parsed) {
-            std::cerr << "[IMUController] Unparseable command: '" << raw_command << "'\n";
-            return;
+    void RedisSingleIMUController::processCommand(const std::string& raw_command)
+    {
+        if (raw_command.empty() || raw_command == " ") return;
+        const std::vector<std::string> parts = parseImuCommandRecord(raw_command);
+        const std::string& t_str = parts[0];     // timestamp as string (if you ever need it)
+        std::string cmd          = parts[1];     // command
+        int idx                  = 0;            // index/flag, optional
+        if (parts.size() >= 3 && !parts[2].empty()) {
+            try {
+                idx = std::stoi(parts[2]);
+            } catch (...) {
+                // You can log but don't crash
+                std::cerr << "[IMU] Invalid idx in command: '" << raw_command << "'\n";
+                idx = 0;
+            }
         }
 
-        std::string cmd = parsed->command;
-        std::transform(cmd.begin(), cmd.end(), cmd.begin(),
-                       [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+        const std::string params = (parts.size() >= 4) ? parts[3] : std::string{};
 
-        const std::string &params = parsed->parameters;
         const std::string prefix = "[IMU] ";
 
-        try {
-            if (cmd == "connect") {
-                if (mcp_.open()) {
+        try
+        {
+            if (cmd == "connect")
+            {
+                if (mcp_.open())
+                {
                     connected_ = true;
-                    publishResponse("connect", "OK");
+                    publishResponse("connect",t_str, "OK");
                     log("INFO", "Connected via MCP2221");
 
                     //icm init is mvoed here
                     auto start = std::chrono::steady_clock::now();
                     // Create ICM instance
-                    if (!icm20948) {
+                    if (!icm20948)
+                    {
                         icm20948 = std::make_unique<ICM20948>(mcp_, 0x69, imu_id_, def_imu_cfg);
                     }
-                    if (icm20948->Initialize()) {
-                        if (icm20948->FIFOConfig()) {
+                    if (icm20948->Initialize())
+                    {
+                        if (icm20948->FIFOConfig())
+                        {
                             // Start the IMU producer that pushes ImuSample into sample_queue_
                             // icm20948->start(sample_queue_);
                             // startConsumer();
@@ -191,38 +217,50 @@ namespace exoskeleton::core {
                             auto end = std::chrono::steady_clock::now();
                             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-                            publishResponse("icminit", "OK:init_time_" + std::to_string(duration.count()) + "ms");
+                            publishResponse("icminit",t_str, "OK:init_time_" + std::to_string(duration.count()) + "ms");
                             log("INFO",
                                 "ICM-20948 initialized and producer started in " + std::to_string(duration.count()) +
                                 "ms");
                             calibration_loaded_ = false;
-                        } else {
-                            publishResponse("icminit", "ER:FIFO configuration failed");
+                        }
+                        else
+                        {
+                            publishResponse("icminit",t_str, "ER:FIFO configuration failed");
                             log("ERROR", "FIFO configuration failed");
                         }
-                    } else {
-                        publishResponse("icminit", "ER:ICM-20948 initialization failed (not responding at 0x69?)");
+                    }
+                    else
+                    {
+                        publishResponse("icminit",t_str, "ER:ICM-20948 initialization failed (not responding at 0x69?)");
                         log("ERROR", "ICM-20948 initialization failed at address 0x69");
                     }
-                } else {
-                    publishResponse("connect", "ER:Failed to open MCP2221");
+                }
+                else
+                {
+                    publishResponse("connect",t_str, "ER:Failed to open MCP2221");
                     log("ERROR", "Failed to open MCP2221");
                 }
-            } else if (cmd == "icminit") {
-                if (!connected_) {
-                    publishResponse("icminit", "ER:Not connected (run connect first)");
+            }
+            else if (cmd == "icminit")
+            {
+                if (!connected_)
+                {
+                    publishResponse("icminit",t_str, "ER:Not connected (run connect first)");
                     return;
                 }
 
                 auto start = std::chrono::steady_clock::now();
 
                 // Create ICM instance
-                if (!icm20948) {
+                if (!icm20948)
+                {
                     icm20948 = std::make_unique<ICM20948>(mcp_, 0x69, imu_id_, def_imu_cfg);
                 }
 
-                if (icm20948->Initialize()) {
-                    if (icm20948->FIFOConfig()) {
+                if (icm20948->Initialize())
+                {
+                    if (icm20948->FIFOConfig())
+                    {
                         // Start the IMU producer that pushes ImuSample into sample_queue_
                         // icm20948->start(sample_queue_);
                         // startConsumer();
@@ -230,29 +268,36 @@ namespace exoskeleton::core {
                         auto end = std::chrono::steady_clock::now();
                         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-                        publishResponse("icminit", "OK:init_time_" + std::to_string(duration.count()) + "ms");
+                        publishResponse("icminit",t_str, "OK:init_time_" + std::to_string(duration.count()) + "ms");
                         log("INFO",
                             "ICM-20948 initialized and producer started in " + std::to_string(duration.count()) + "ms");
                         calibration_loaded_ = false;
-                    } else {
-                        publishResponse("icminit", "ER:FIFO configuration failed");
+                    }
+                    else
+                    {
+                        publishResponse("icminit",t_str, "ER:FIFO configuration failed");
                         log("ERROR", "FIFO configuration failed");
                     }
-                } else {
-                    publishResponse("icminit", "ER:ICM-20948 initialization failed (not responding at 0x69?)");
+                }
+                else
+                {
+                    publishResponse("icminit",t_str, "ER:ICM-20948 initialization failed (not responding at 0x69?)");
                     log("ERROR", "ICM-20948 initialization failed at address 0x69");
                 }
-            } else if (cmd == "calibrate") {
-                if (!icm20948) {
-                    publishResponse("calibrate", "ER:IMU not initialized (run icminit first)");
+            }
+            else if (cmd == "calibrate")
+            {
+                if (!icm20948)
+                {
+                    publishResponse("calibrate",t_str, "ER:IMU not initialized (run icminit first)");
                     return;
                 }
 
-                std::string cal_mode = params;
-                std::transform(cal_mode.begin(), cal_mode.end(), cal_mode.begin(),
-                               [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+                const std::string& cal_mode = params;
 
-                if (cal_mode == "save") {
+
+                if (cal_mode == "save")
+                {
                     std::cout << "[IMUController] Performing calibration (this may take up to 1 second)...\n";
                     auto start = std::chrono::steady_clock::now();
 
@@ -262,23 +307,31 @@ namespace exoskeleton::core {
                     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
                     calibration_loaded_ = true;
-                    publishResponse("calibrate", "OK:calibration_complete_" + std::to_string(duration.count()) + "ms");
+                    publishResponse("calibrate",t_str, "OK:calibration_complete_" + std::to_string(duration.count()) + "ms");
                     log("INFO", "Calibration performed and saved");
-                } else if (cal_mode == "load") {
+                }
+                else if (cal_mode == "load")
+                {
                     icm20948->loadCalibrationfromTxt(calibPathTXT());
-                    publishResponse("calibrate", "OK:calibration_loaded");
+                    publishResponse("calibrate",t_str, "OK:calibration_loaded");
                     calibration_loaded_ = true;
                     log("INFO", "Calibration loaded from file");
-                } else {
-                    publishResponse("calibrate", "ER:Invalid calibration mode (use 'save' or 'load')");
                 }
-            } else if (cmd == "start") {
-                if (!icm20948) {
-                    publishResponse("start", "ER:IMU not initialized");
+                else
+                {
+                    publishResponse("calibrate", t_str,"ER:Invalid calibration mode (use 'save' or 'load')");
+                }
+            }
+            else if (cmd == "start")
+            {
+                if (!icm20948)
+                {
+                    publishResponse("start",t_str ,"ER:IMU not initialized");
                     return;
                 }
-                if (!calibration_loaded_) {
-                    publishResponse("start", "ER:IMU not calibrated (run 'calibrate save' or 'calibrate load' first)");
+                if (!calibration_loaded_)
+                {
+                    publishResponse("start",t_str, "ER:IMU not calibrated (run 'calibrate save' or 'calibrate load' first)");
                     return;
                 }
 
@@ -290,71 +343,93 @@ namespace exoskeleton::core {
                 // redis_.hset("run:addrs", "imu"+std::to_string(imu_id_),std::to_string(imu_id_)+"|");
 
 
-                publishResponse("start", "OK:sampling_started");
+                publishResponse("start",t_str, "OK:sampling_started");
                 log("INFO", "IMU sampling started at 75Hz");
                 std::cout << prefix << "Sampling started\n";
-            } else if (cmd == "stop") {
+            }
+            else if (cmd == "stop")
+            {
                 sampling_active_ = false;
                 icm20948->stop();
                 stopConsumer(); // Stop the consumer thread
                 // After IMU initializes and imu_id = 0
 
                 redis_.hdel("run:addrs", "imu" + std::to_string(imu_id_));
-                publishResponse("stop", "OK:sampling_stopped");
+                publishResponse("stop",t_str, "OK:sampling_stopped");
                 log("INFO", "IMU sampling stopped");
                 std::cout << prefix << "Sampling stopped\n";
-            } else if (cmd == "zero") {
-                if (!sampling_active_) {
-                    publishResponse("zero", "ER:Sampling not active");
+            }
+            else if (cmd == "zero")
+            {
+                if (!sampling_active_)
+                {
+                    publishResponse("zero",t_str, "ER:Sampling not active");
                     return;
                 }
 
                 bool enable_zero = icm20948->setZeroing();
                 // zeroing_enabled_ = enable_zero;
 
-                if (enable_zero) {
-                    publishResponse("zero", "OK:euler_zeroing_enabled");
+                if (enable_zero)
+                {
+                    publishResponse("zero",t_str, "OK:euler_zeroing_enabled");
                     log("INFO", "Euler angle zeroing enabled (reference set to current)");
-                } else {
-                    publishResponse("zero", "OK:euler_zeroing_disabled");
+                }
+                else
+                {
+                    publishResponse("zero", t_str,"OK:euler_zeroing_disabled");
                     log("INFO", "Euler angle zeroing disabled");
                 }
-            } else if (cmd == "disconnect") {
-                if (connected_) {
+            }
+            else if (cmd == "disconnect")
+            {
+                if (connected_)
+                {
                     mcp_.close();
                     connected_ = false;
                     sampling_active_ = false;
                     icm20948.reset();
 
-                    publishResponse("disconnect", "OK");
+                    publishResponse("disconnect",t_str, "OK");
                     log("INFO", "Disconnected from IMU");
-                } else {
-                    publishResponse("disconnect", "ER:Not connected");
                 }
-            } else if (cmd == "exercise") {
+                else
+                {
+                    publishResponse("disconnect",t_str,"ER:Not connected");
+                }
+            }
+            else if (cmd == "exercise")
+            {
                 // params is expected as "0|[exercisenum, exerciseparam]" or "[exercisenum, exerciseparam]"
                 int channel = 0;
                 std::string json_str;
                 const auto pipePos = params.find('|');
-                if (pipePos != std::string::npos) {
+                if (pipePos != std::string::npos)
+                {
                     // left side: "0"
                     const std::string chan_str = params.substr(0, pipePos);
-                    try {
+                    try
+                    {
                         channel = std::stoi(chan_str);
-                    } catch (...) {
+                    }
+                    catch (...)
+                    {
                         channel = 0;
                     }
 
                     // right side: "[exercisenum, exerciseparam]"
                     json_str = params.substr(pipePos + 1);
-                } else {
+                }
+                else
+                {
                     // no channel given, assume params itself is the JSON array
                     json_str = params;
                 }
 
                 // Use the same helper as in fn_upload
                 auto values = exoskeleton::redis_tools::parseJsonArray(json_str);
-                if (values.size() < 1) {
+                if (values.size() < 1)
+                {
                     std::cerr << prefix << "Invalid exercise array: " << json_str << "\n";
                     return;
                 }
@@ -362,10 +437,17 @@ namespace exoskeleton::core {
                 const int exercise_num = values[0];
                 const int threshold = (values.size() >= 2) ? values[1] : 0;
                 const int cooldown_ms = (values.size() >= 3) ? values[2] : 0;
-                if (exercise_num == 2) {
-                    if (values.size() < 5) {
+                if (exercise_num == -1)
+                {
+                    exercise_controller_.stop_exercise();
+                    return;
+                }
+                else if (exercise_num == 2)
+                {
+                    if (values.size() < 5)
+                    {
                         std::cerr << prefix <<
-                                "Strength exercise needs 5 values [2, torque, sets, reps, muscle_type]\n";
+                            "Strength exercise needs 5 values [2, torque, sets, reps, muscle_type]\n";
                         return;
                     }
 
@@ -379,18 +461,24 @@ namespace exoskeleton::core {
                 }
                 //set exercise type
                 exercise_controller_.set_exercise(channel, exercise_num, threshold, cooldown_ms);
-            } else {
-                publishResponse(cmd, "ER:Unknown command");
+            }
+            else
+            {
+                publishResponse(cmd,t_str, "ER:Unknown command");
                 std::cout << prefix << "Unknown command: '" << cmd << "'\n";
             }
-        } catch (const std::exception &e) {
+        }
+        catch (const std::exception& e)
+        {
             std::cerr << prefix << "Error processing command: " << e.what() << "\n";
-            publishResponse(cmd, std::string("ER:") + e.what());
+            publishResponse(cmd,t_str, std::string("ER:") + e.what());
         }
     }
 
-    void RedisSingleIMUController::onFrameStoreIMU() {
-        if (!is_ready_for_measurements()) {
+    void RedisSingleIMUController::onFrameStoreIMU()
+    {
+        if (!is_ready_for_measurements())
+        {
             std::cout << "IMU not yet connected" << std::endl;
             return;
         }
@@ -402,13 +490,14 @@ namespace exoskeleton::core {
         // ----------------------------------------------------
         {
             ImuSample s;
-            while (sample_queue_.try_dequeue(s)) {
+            while (sample_queue_.try_dequeue(s))
+            {
                 std::lock_guard<std::mutex> lock(buffered_samples_mutex_);
                 buffered_samples_.push_back(s);
             }
         }
 
-        using StreamEntry = std::pair<std::string, std::map<std::string, std::string> >;
+        using StreamEntry = std::pair<std::string, std::map<std::string, std::string>>;
 
         // ----------------------------------------------------
         // 2) Read only new motor entries from xdata:0 since last call
@@ -416,25 +505,31 @@ namespace exoskeleton::core {
         static std::string last_id; // last seen motor stream ID
         std::vector<StreamEntry> entries;
 
-        if (last_id.empty()) {
+        if (last_id.empty())
+        {
             redis_.xrevrange("xdata:0", "+", "-", std::back_inserter(entries));
 
-            if (!entries.empty()) {
+            if (!entries.empty())
+            {
                 // newest entry is first for XREVRANGE
                 last_id = entries.front().first;
                 //qDebug() << "[INIT] last_id set to:" << last_id.c_str();
-            } else {
+            }
+            else
+            {
                 qDebug() << "[INIT] xdata:0 is empty";
             }
             return; // important: we do not process historical data
-        } {
+        }
+        {
             std::string end = "+";
             std::string start = "(" + last_id; // IDs strictly greater than last_id
 
             entries.clear();
             redis_.xrevrange("xdata:0", end, start, std::back_inserter(entries));
 
-            if (entries.empty()) {
+            if (entries.empty())
+            {
                 return;
             }
         }
@@ -445,24 +540,30 @@ namespace exoskeleton::core {
         // Drops old IMU samples so we use the closest (latest) IMU in the past.
         // ----------------------------------------------------
         auto take_imu_for_motor =
-                [this](std::chrono::steady_clock::time_point motor_tp) -> std::optional<ImuSample> {
+            [this](std::chrono::steady_clock::time_point motor_tp) -> std::optional<ImuSample>
+        {
             //using namespace std::chrono;
             std::lock_guard<std::mutex> lock(buffered_samples_mutex_);
 
-            if (buffered_samples_.empty()) {
+            if (buffered_samples_.empty())
+            {
                 return std::nullopt;
             }
 
             // Drop oldest IMU samples as long as there is a newer one that is still <= motor time.
             // This keeps the most recent IMU sample that is not later than the motor sample.
-            while (buffered_samples_.size() >= 2) {
-                const ImuSample &first = buffered_samples_[0];
-                const ImuSample &second = buffered_samples_[1];
+            while (buffered_samples_.size() >= 2)
+            {
+                const ImuSample& first = buffered_samples_[0];
+                const ImuSample& second = buffered_samples_[1];
 
-                if (second.t_host <= motor_tp) {
+                if (second.t_host <= motor_tp)
+                {
                     // second is still in the past relative to motor -> first is older and can be dropped
                     buffered_samples_.pop_front();
-                } else {
+                }
+                else
+                {
                     break;
                 }
             }
@@ -482,20 +583,25 @@ namespace exoskeleton::core {
         // ----------------------------------------------------
         //using namespace std::chrono;
 
-        for (auto it = entries.rbegin(); it != entries.rend(); ++it) {
-            const auto &id = it->first;
-            const auto &fields = it->second;
+        for (auto it = entries.rbegin(); it != entries.rend(); ++it)
+        {
+            const auto& id = it->first;
+            const auto& fields = it->second;
 
             auto it_t = fields.find("t");
-            if (it_t == fields.end()) {
+            if (it_t == fields.end())
+            {
                 qDebug() << "Motor sample id:" << id.c_str() << " (no 't' field)";
                 continue;
             }
 
             std::int64_t motor_t_raw = 0;
-            try {
+            try
+            {
                 motor_t_raw = std::stoll(it_t->second);
-            } catch (...) {
+            }
+            catch (...)
+            {
                 qDebug() << "Motor sample id:" << id.c_str() << " (invalid 't')";
                 continue;
             }
@@ -506,12 +612,14 @@ namespace exoskeleton::core {
             };
 
             auto imu_opt = take_imu_for_motor(motor_tp);
-            if (!imu_opt) {
+            if (!imu_opt)
+            {
                 // No fresh IMU available; optionally reuse last_used_imu
-                if (!last_used_imu) {
+                if (!last_used_imu)
+                {
                     qDebug() << "Motor sample id:" << id.c_str()
-                            << " t:" << QString::fromStdString(it_t->second)
-                            << " (no IMU available)";
+                        << " t:" << QString::fromStdString(it_t->second)
+                        << " (no IMU available)";
                     continue;
                 }
                 imu_opt = last_used_imu;
@@ -525,12 +633,12 @@ namespace exoskeleton::core {
             // Build IMU record for Redis
             const std::string key = std::string("xdata:") + device_key_;
 
-            std::vector<std::pair<std::string, std::string> > redisfields;
+            std::vector<std::pair<std::string, std::string>> redisfields;
 
 
             auto imu_t_ns =
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(
-                        sample.t_host.time_since_epoch()).count();
+                std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    sample.t_host.time_since_epoch()).count();
 
             // integer nanosecond diff, positive if motor is later than IMU
             std::int64_t diff_ns = motor_t_raw - imu_t_ns;
@@ -557,7 +665,8 @@ namespace exoskeleton::core {
             //if (sample.mag_ok)         flags |= 0x04;
             redisfields.emplace_back("flags", std::to_string(flags));
 
-            try {
+            try
+            {
                 std::lock_guard<std::mutex> lock(redis_mutex_);
                 redis_.xadd(key, "*", redisfields.begin(), redisfields.end());
                 ++imu_published;
@@ -570,11 +679,13 @@ namespace exoskeleton::core {
                                           sample.euler.at(2),
                                           sample.gyro.at(0),
                                           sample.gyro.at(1),
-                                          sample.gyro.at(2))                       ;
+                                          sample.gyro.at(2));
 
                 // Drive the exercise logic from the same IMU thread:
                 exercise_controller_.updateExerciseFromIMU(sample, imu_t_ns);
-            } catch (const std::exception &e) {
+            }
+            catch (const std::exception& e)
+            {
                 std::cerr << "[IMUController] Error publishing IMU sample: " << e.what() << "\n";
             }
         }
@@ -582,49 +693,60 @@ namespace exoskeleton::core {
         last_id = entries.front().first;
     }
 
-    bool RedisSingleIMUController::is_ready_for_measurements() const {
+    bool RedisSingleIMUController::is_ready_for_measurements() const
+    {
         // IMU must be created & initialized, calibration must be done,
         // and sampling must be active (producer + consumer running).
         return icm20948 != nullptr
-               && calibration_loaded_
-               && sampling_active_;
+            && calibration_loaded_
+            && sampling_active_;
     }
 
-    void RedisSingleIMUController::startConsumer() {
-        if (consumer_running_) {
+    void RedisSingleIMUController::startConsumer()
+    {
+        if (consumer_running_)
+        {
             return;
         }
         consumer_running_ = true;
 
-        consumer_thread_ = std::jthread([this](std::stop_token st) {
+        consumer_thread_ = std::jthread([this](std::stop_token st)
+        {
             // Subscribe to "sync:data:ready" keyspace notifications.
             // We assume the same helper as for motors: make_keyspace_subscriber(redis_, key_name).
             auto subscriber =
-                    exoskeleton::redis_tools::make_keyspace_subscriber(redis_, "sync:data:ready");
+                exoskeleton::redis_tools::make_keyspace_subscriber(redis_, "sync:data:ready");
 
-            subscriber.on_message([this, &st](const std::string &channel,
-                                              const std::string &msg) {
-                if (st.stop_requested()) {
+            subscriber.on_message([this, &st](const std::string& channel,
+                                              const std::string& msg)
+            {
+                if (st.stop_requested())
+                {
                     return;
                 }
 
-                if (msg != "set") {
+                if (msg != "set")
+                {
                     return; // we only care about SET events
                 }
 
                 // Read frame time from Redis key "sync:data:ready"
                 auto const t_str = redis_.get("sync:data:ready");
-                if (!t_str) {
+                if (!t_str)
+                {
                     return; // no valid timestamp
                 }
 
 
                 std::int64_t frame_time_ns = 0;
-                try {
+                try
+                {
                     frame_time_ns = std::stoll(*t_str);
 
                     // frame_time_ns = std::stoull(trimmed);
-                } catch (std::exception &e) {
+                }
+                catch (std::exception& e)
+                {
                     std::cerr << "HELO: " << e.what() << std::endl;
                     // Malformed timestamp; skip this event
                     return;
@@ -636,15 +758,20 @@ namespace exoskeleton::core {
             });
 
             // Main event loop: block on keyspace notifications
-            while (!st.stop_requested()) {
-                try {
+            while (!st.stop_requested())
+            {
+                try
+                {
                     subscriber.consume(); // waits for next keyspace event
-                } catch (const std::exception &e) {
+                }
+                catch (const std::exception& e)
+                {
                     std::cerr << "[IMUController] Consumer subscriber exception: " << e.what() << "\n";
                     // Optionally log error and break; for now we break.
                     break;
                 }
-                catch (...) {
+                catch (...)
+                {
                     std::cerr << "[IMUController] Consumer subscriber unknown exception\n";
                     break;
                 }
@@ -656,49 +783,62 @@ namespace exoskeleton::core {
     }
 
 
-    void RedisSingleIMUController::stopConsumer() {
+    void RedisSingleIMUController::stopConsumer()
+    {
         if (!consumer_running_)
             return;
 
 
         // Wake up the consumer if it's blocked on wait_dequeue
-        try {
+        try
+        {
             sample_queue_.enqueue(ImuSample());
-        } catch (...) {
+        }
+        catch (...)
+        {
         }
 
-        if (consumer_thread_.joinable()) {
+        if (consumer_thread_.joinable())
+        {
             consumer_thread_.request_stop();
             consumer_thread_.join();
         }
         consumer_running_ = false;
     }
 
-    void RedisSingleIMUController::publishResponse(const std::string &command, const std::string &response) {
-        try {
+    void RedisSingleIMUController::publishResponse(const std::string& command,const std::string t_str, const std::string& response)
+    {
+        try
+        {
             std::lock_guard<std::mutex> lock(redis_mutex_);
             // Single unified response key for all IMU command responses
-            auto res_key = "commandres:" + device_key_;
+            auto res_key = "commandres:"+command+":1000:"+t_str;
             // Format: timestamp|command|response
-            auto t_ns = nowNs();
-            std::string formatted = std::to_string(t_ns) + "|" + command + "|" + response;
-            redis_.lpush(res_key, formatted);
-        } catch (const std::exception &e) {
+            //auto t_ns = nowNs();
+            //std::string formatted = std::to_string(t_ns) + "|" + command + "|" + response;
+            redis_.lpush(res_key, response);
+        }
+        catch (const std::exception& e)
+        {
             std::cerr << "[IMUController] Error publishing response: " << e.what() << "\n";
         }
     }
 
-    void RedisSingleIMUController::log(const std::string &level, const std::string &message) {
-        try {
+    void RedisSingleIMUController::log(const std::string& level, const std::string& message)
+    {
+        try
+        {
             std::lock_guard<std::mutex> lock(redis_mutex_);
             auto t_ns = nowNs();
-            std::vector<std::pair<std::string, std::string> > fields;
+            std::vector<std::pair<std::string, std::string>> fields;
             fields.emplace_back("t", std::to_string(t_ns));
             fields.emplace_back("src", "IMU:" + device_key_);
             fields.emplace_back("level", level);
             fields.emplace_back("msg", message);
             redis_.xadd("log", "*", fields.begin(), fields.end());
-        } catch (const std::exception &e) {
+        }
+        catch (const std::exception& e)
+        {
             std::cerr << "[IMUController] Error logging to Redis: " << e.what() << "\n";
         }
     }
