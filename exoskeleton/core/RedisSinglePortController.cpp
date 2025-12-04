@@ -215,7 +215,7 @@ namespace exoskeleton::core
             {
                 if (parts.size() < 4)
                 {
-                    throw std::runtime_error("Missing value for fn_upload");
+                    throw std::runtime_error("Missing value for startlog");
                 }
                 std::string const& path = parts[3];
                 data_logger_->startLogging(path);

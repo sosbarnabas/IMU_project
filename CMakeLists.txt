@@ -79,6 +79,15 @@ add_executable(MOCK_MOTORS_TEST tests/mock_motors_test.cpp
         exoskeleton/motor/motor.cpp
         exoskeleton/motor/ExoMotorsInterface.cpp
         exoskeleton/settings/Settings.cpp
+        #Logging
+        exoskeleton/core/DataLogger.cpp
+        #IMU files
+        exoskeleton/IMU/sensorfusion/Madgwick.cpp
+        exoskeleton/IMU/ICM/icm20948.cpp
+        exoskeleton/IMU/MCP/mcp2221.cpp
+        exoskeleton/core/RedisSingleIMUController.cpp
+        #Control
+        exoskeleton/core/Control.cpp
 )
 
 target_link_libraries(READTEST PRIVATE Qt6::Core Qt6::CorePrivate Qt6::SerialPort)

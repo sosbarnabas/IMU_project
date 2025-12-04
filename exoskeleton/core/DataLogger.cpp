@@ -304,7 +304,6 @@ namespace exoskeleton::core
             {
                 int motor_id = active_motors_[i];
                 if (i > 0) header << ",";
-
                 header << "motor_" << motor_id << "_id";
                 header << ",motor_" << motor_id << "_t";
                 header << ",motor_" << motor_id << "_position";
@@ -314,7 +313,7 @@ namespace exoskeleton::core
             if (imu_active_)
             {
                 if (!active_motors_.empty()) header << ",";
-                header << "imu_id,imu_t_ns,imu_euler_roll,imu_euler_pitch,imu_euler_yaw";
+                header << "imu_id,imu_t_ns,imu_euler_roll,imu_euler_pitch,imu_euler_yaw,imu_gyro_roll,imu_gyro_pitch,imu_gyro_yaw";
             }
 
             csv_file << header.str() << "\n";
@@ -427,6 +426,15 @@ namespace exoskeleton::core
                         line << "," << (data.count("euler_roll") ? data.at("euler_roll") : "");
                         line << "," << (data.count("euler_pitch") ? data.at("euler_pitch") : "");
                         line << "," << (data.count("euler_yaw") ? data.at("euler_yaw") : "");
+
+                        // gyro sensor
+                         line << "," << (data.count("gyro_roll") ? data.at("gyro_roll") : "");
+                        line << "," << (data.count("gyro_pitch") ? data.at("gyro_pitch") : "");
+                        line << "," << (data.count("gyro_yaw") ? data.at("gyro_yaw") : "");
+                        // accel sensor
+                        // line << "," << (data.count("euler_roll") ? data.at("euler_roll") : "");
+                        // line << "," << (data.count("euler_pitch") ? data.at("euler_pitch") : "");
+                        // line << "," << (data.count("euler_yaw") ? data.at("euler_yaw") : "");
                     }
                     else
                     {

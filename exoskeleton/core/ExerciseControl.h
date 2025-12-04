@@ -50,6 +50,11 @@ namespace exoskeleton::core
         int    current_set           = 0;
         int    current_rep           = 0;
 
+        double rep_vel_sum;       // sum of |motor velocity| over samples in rep
+        double rep_vel_sq_sum;    // sum of |motor velocity|^2
+        int    rep_vel_count;     // number of samples in rep
+
+
         bool   in_rep                = false;
         std::int64_t rep_start_ns    = 0;
         std::int64_t rep_end_ns      = 0;

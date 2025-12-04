@@ -2,7 +2,9 @@
 #include <string>
 #include <memory>
 #include <sw/redis++/redis++.h>
+#include <sw/redis++/redis++.h>
 #include "MockExoMotors.h"
+#include "../core/RedisTools.h"
 
 namespace exoskeleton::core
 {

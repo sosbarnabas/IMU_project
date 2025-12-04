@@ -30,7 +30,7 @@ namespace exoskeleton::core
 
         // Compute velocity [deg/s] using first and last samples in the buffer
         // Returns false if not enough data (fewer than 2 samples or zero dt)
-        bool compute_velocity(double& vel_deg_s) const;
+        bool compute_motor_velocity(double& vel_deg_s) const;
 
         // Pointer to latest sample or nullptr if none
         const MotorState* latest() const;
