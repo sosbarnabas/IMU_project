@@ -401,6 +401,7 @@ namespace exoskeleton::core
             else if (cmd == "exercise")
             {
                 // params is expected as "0|[exercisenum, exerciseparam]" or "[exercisenum, exerciseparam]"
+
                 int channel = 0;
                 std::string json_str;
                 const auto pipePos = params.find('|');
@@ -437,6 +438,7 @@ namespace exoskeleton::core
                 const int exercise_num = values[0];
                 const int threshold = (values.size() >= 2) ? values[1] : 0;
                 const int cooldown_ms = (values.size() >= 3) ? values[2] : 0;
+                qDebug() <<"Exercise" << exercise_num << threshold << cooldown_ms << values.size();
                 if (exercise_num == -1)
                 {
                     exercise_controller_.stop_exercise();

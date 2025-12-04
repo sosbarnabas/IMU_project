@@ -28,6 +28,7 @@ namespace exoskeleton::core {
     }
 
     bool MotorHistory::compute_motor_velocity(double &vel_deg_s) const {
+        qDebug() << "[IMU] compute_motor_velocity";
         const std::size_t N = buffer_.size();
         if (N < 2) {
             return false;
@@ -56,6 +57,7 @@ namespace exoskeleton::core {
             }
 
             const double t = ns_to_seconds(dt_ns); // [s]
+            //const double t = dt_ns;
             const double p = s.position_deg; // [deg]
 
             sum_t += t;
@@ -69,6 +71,7 @@ namespace exoskeleton::core {
         const double n = static_cast<double>(N);
 
         const double denom = n * sum_tt - sum_t * sum_t;
+        qDebug() << "Démon:" << denom;
         if (std::abs(denom) < 1e-12) {
             // Fallback: simple end-to-end finite difference
             const double dt_s = ns_to_seconds(dt_ns_total);
@@ -397,6 +400,7 @@ namespace exoskeleton::core {
     }
 
     bool Control::get_motor_velocity(int motor_id, double &vel_deg_s) const {
+        qDebug() << "[IMU] get_motor_velocity" <<motors_.find(0)->first;
         auto it = motors_.find(motor_id);
         if (it == motors_.end()) return false;
 

@@ -34,17 +34,17 @@ namespace exoskeleton::core
             else
             {
                 measureAndStore();
-                if (motor_props_.address == 0)
-                {
-                    double vel_deg_s;
-                    if (control_.get_motor_velocity(motor_props_.address, vel_deg_s))
-                    {
-                        if (abs(vel_deg_s) > 4)
-                        {
-                            //qDebug() << "Motor id" << motor_props_.address << "velocity" << vel_deg_s;
-                        }
-                    }
-                }
+                // if (motor_props_.address == 0)
+                // {
+                //     double vel_deg_s;
+                //     if (control_.get_motor_velocity(motor_props_.address, vel_deg_s))
+                //     {
+                //         if (abs(vel_deg_s) > 4)
+                //         {
+                //             qDebug() << "Motor id" << motor_props_.address << "velocity" << vel_deg_s;
+                //         }
+                //     }
+                // }
 
                 exoskeleton::redis_tools::signal_data_ready(redis_, n_motors_);
                 //std::cout << "[DEBUG] Nincs parancs " << data.size() << std::endl;
@@ -247,7 +247,7 @@ namespace exoskeleton::core
         {
             exoskeleton::redis_tools::xadd_motor_data(redis_, motor_props_.address, data);
             // Update control module with the new sample
-            control_.update_motor_state(motor_props_.address, static_cast<double>(data.t) * 1e-6 , data.position, data.torque);
+            control_.update_motor_state(motor_props_.address, static_cast<double>(data.t), data.position, data.torque);
 
 
         }
