@@ -32,6 +32,7 @@ namespace exoskeleton::core
         // Returns false if not enough data (fewer than 2 samples or zero dt)
         bool compute_motor_velocity(double& vel_deg_s) const;
 
+
         // Pointer to latest sample or nullptr if none
         const MotorState* latest() const;
 
@@ -120,6 +121,7 @@ namespace exoskeleton::core
         // Get current velocity estimate for motor_id [deg/s]
         // Returns false if not enough data
         bool get_motor_velocity(int motor_id, double& vel_deg_s) const;
+        bool get_motor_position(int motor_id, double &pos_deg) const;
 
         const MotorState* get_latest_state(int motor_id) const;
 

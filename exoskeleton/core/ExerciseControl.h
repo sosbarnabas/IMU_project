@@ -71,6 +71,12 @@ namespace exoskeleton::core
         double baseline_rest_ms      = 0.0;  // avg rest time of first N rests
 
         double fatigue_index         = 0.0;  // 0..1+ (higher = more tired)
+        // bool    strength_initialized;
+
+        double  rep_min_roll_deg;
+
+        double  prev_elbow_pos_deg;
+        int     stable_rest_samples;
 
     };
 

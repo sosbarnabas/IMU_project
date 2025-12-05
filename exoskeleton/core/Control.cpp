@@ -27,6 +27,7 @@ namespace exoskeleton::core {
         }
     }
 
+
     bool MotorHistory::compute_motor_velocity(double &vel_deg_s) const {
 
         const std::size_t N = buffer_.size();
@@ -407,6 +408,18 @@ namespace exoskeleton::core {
         if (it == motors_.end()) return false;
 
         return it->second.compute_motor_velocity(vel_deg_s);
+    }
+    // NEW: use last MotorState in MotorHistory
+    bool Control::get_motor_position(int motor_id, double &pos_deg) const
+    {
+        // Reuse helper
+        const MotorState* st = get_latest_state(motor_id);
+        if (!st)
+            return false;
+
+        // Adjust field name if needed (position_deg vs position)
+        pos_deg = st->position_deg;
+        return true;
     }
 
     const MotorState *Control::get_latest_state(int motor_id) const {
