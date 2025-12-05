@@ -6,7 +6,7 @@
 namespace exoskeleton::core {
     // Helper: convert nanoseconds difference to seconds
     static inline double ns_to_seconds(std::int64_t dt_ns) {
-        return static_cast<double>(dt_ns) * 1e-9;
+        return static_cast<double>(dt_ns) * 1e-6;
     }
 
     // ===================== MotorHistory =====================
@@ -28,8 +28,9 @@ namespace exoskeleton::core {
     }
 
     bool MotorHistory::compute_motor_velocity(double &vel_deg_s) const {
-        qDebug() << "[IMU] compute_motor_velocity";
+
         const std::size_t N = buffer_.size();
+
         if (N < 2) {
             return false;
         }
@@ -38,9 +39,9 @@ namespace exoskeleton::core {
         const MotorState &last = buffer_.back();
 
         const std::int64_t dt_ns_total = last.timestamp_ns - first.timestamp_ns;
-        if (dt_ns_total <= 0) {
-            return false;
-        }
+
+        if (dt_ns_total <= 0) return false;
+
 
         // Time origin at the first sample to keep numbers small and stable
         // ti = time since first sample [s]
@@ -71,7 +72,7 @@ namespace exoskeleton::core {
         const double n = static_cast<double>(N);
 
         const double denom = n * sum_tt - sum_t * sum_t;
-        qDebug() << "Démon:" << denom;
+
         if (std::abs(denom) < 1e-12) {
             // Fallback: simple end-to-end finite difference
             const double dt_s = ns_to_seconds(dt_ns_total);
@@ -388,6 +389,7 @@ namespace exoskeleton::core {
                                      std::int64_t timestamp_ns,
                                      double position_deg,
                                      double torque) {
+
         MotorState s{timestamp_ns, position_deg, torque};
 
         // lazily create history for this motor
@@ -400,7 +402,7 @@ namespace exoskeleton::core {
     }
 
     bool Control::get_motor_velocity(int motor_id, double &vel_deg_s) const {
-        qDebug() << "[IMU] get_motor_velocity" <<motors_.find(0)->first;
+
         auto it = motors_.find(motor_id);
         if (it == motors_.end()) return false;
 

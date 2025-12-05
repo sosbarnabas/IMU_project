@@ -292,7 +292,7 @@ namespace exoskeleton::core
         }
         else if (exercise_.exercise_num == 2)
         {
-            qDebug() << "[Excercise] Excercise 3 start";
+
             if (exercise_.current_set > exercise_.strength_sets)
                 return; // exercise logically finished
 
@@ -333,10 +333,10 @@ namespace exoskeleton::core
             // 2) Get kinematics
             // Motor velocity drives segmentation
             double motor_vel_deg_s = 0.0;
-            qDebug() <<"bef";
+
             if (!control_.get_motor_velocity(ELBOW_MOTOR_ID, motor_vel_deg_s))
                 return;
-            qDebug() << "[IMU] Exercise 3 motor speed:" << motor_vel_deg_s;
+
             const double motor_abs_vel = std::abs(motor_vel_deg_s);
 
             // IMU only for max angle tracking

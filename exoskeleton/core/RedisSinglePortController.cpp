@@ -152,6 +152,7 @@ namespace exoskeleton::core
             }
             else if (c == "fn_upload")
             {
+
                 if (parts.size() < 4)
                 {
                     throw std::runtime_error("Missing value for fn_upload");
@@ -165,6 +166,7 @@ namespace exoskeleton::core
                     auto record = motor_.upload_function(slot, values);
                     response = record.to_string();
                 }
+
             }
             else if (c == "fn_select")
             {
@@ -174,8 +176,10 @@ namespace exoskeleton::core
             }
             else if (c == "zero")
             {
+
                 auto const record = motor_.set_zero();
                 response = record.to_string();
+
             }
             else if (c == "offset")
             {
@@ -185,12 +189,14 @@ namespace exoskeleton::core
             }
             else if (c == "function")
             {
+
                 std::string const& json_str = parts[3];
                 if (auto values = redis_tools::parseJsonArray(json_str); !values.empty())
                 {
                     auto const record = motor_.set_function(values, 7);
                     response = record.to_string();
                 }
+
             }
             else if (c == "fn_get")
             {
@@ -246,8 +252,8 @@ namespace exoskeleton::core
         if (data.is_valid())
         {
             exoskeleton::redis_tools::xadd_motor_data(redis_, motor_props_.address, data);
-            // Update control module with the new sample
-            control_.update_motor_state(motor_props_.address, static_cast<double>(data.t), data.position, data.torque);
+
+            //control_.update_motor_state(motor_props_.address, static_cast<double>(data.t), data.position, data.torque);
 
 
         }

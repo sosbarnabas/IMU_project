@@ -177,7 +177,8 @@ SingleMotorData SinglePortExoMotor::read(int max_tries) {
     require_serial();
     auto data = exoskeleton::motor::read_data(*serial_, max_tries);
     if (data.has_value()) {
-        auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+        //auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+        auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
         prev_read_ = from_base(data, now, 1);
         return prev_read_;
     }

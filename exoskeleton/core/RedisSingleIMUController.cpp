@@ -591,22 +591,36 @@ namespace exoskeleton::core
             const auto& fields = it->second;
 
             auto it_t = fields.find("t");
-            if (it_t == fields.end())
-            {
-                qDebug() << "Motor sample id:" << id.c_str() << " (no 't' field)";
+            // parse position and torque (field names as written by RedisSinglePortController)
+            auto it_pos = fields.find("position");
+            auto it_tou = fields.find("torque");
+            if (it_pos == fields.end() || it_tou == fields.end()||it_t == fields.end()) {
+                qDebug() << "Motor sample id:" << id.c_str() << " missing pos/torque/timestamp";
                 continue;
             }
 
             std::int64_t motor_t_raw = 0;
+            double position = 0.0;
+            double torque = 0.0;
+            // if you only care about motor 0:
+            int motor_id = 0; // or parse from a "motor_id" field if present
             try
             {
                 motor_t_raw = std::stoll(it_t->second);
+                position = std::stod(it_pos->second);
+                torque       = std::stod(it_tou->second);
             }
             catch (...)
             {
-                qDebug() << "Motor sample id:" << id.c_str() << " (invalid 't')";
+                qDebug() << "Motor sample id:" << id.c_str() << " (invalid 't' or 'torque' or 'position'";
                 continue;
             }
+            // Update motor state in Control from IMU thread
+            control_.update_motor_state(motor_id, motor_t_raw, position, torque);
+
+
+
+
 
             // Motor timestamp as steady_clock::time_point (same base as IMU)
             std::chrono::steady_clock::time_point motor_tp{
